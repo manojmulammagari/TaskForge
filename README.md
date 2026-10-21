@@ -1,5 +1,11 @@
 # ForgeState
 
+[![CI Verification](https://github.com/manojmulammagari/TaskForge/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmulammagari/TaskForge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Vitest](https://img.shields.io/badge/Vitest-1.6-brightgreen?logo=vitest)](https://vitest.dev/)
+
 **"Git Stash for the Human Brain"** — a Zero-Tax Context Compiler & Cognitive Decompression Engine.
 
 Built for the **Taskforge Devpost Hackathon** (Deadline: Oct 24, 2026). ForgeState converts a 15-second chaotic brain dump (voice or messy text + errors + links) into a **Verified Resumption Capsule** so developers, students, and anyone with ADHD, cognitive fatigue, or screen-reader needs can resume interrupted work in under 2 minutes instead of 23–45.
