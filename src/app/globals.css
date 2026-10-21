@@ -1,0 +1,382 @@
+/* ForgeState — Tactile Swiss Instrumentation Design System
+ *
+ * Calm Light Mode: warm alabaster #FAF8F5
+ * Focus Dark Mode: deep obsidian #0B0D11
+ * Semantic badges: amber #F59E0B / emerald #10B981
+ * Monospace telemetry readouts. Zero generic AI purple gradients.
+ * WCAG AAA contrast, dyslexia & bionic reading tokens.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Calm Light Mode (default) — Tactile Swiss */
+    --swiss-bg: #FAF8F5;        /* bg-stone-50 */
+    --swiss-surface: #FFFFFF;   /* bg-white cards */
+    --swiss-border: #EAE7E5;    /* border-stone-200 */
+    --swiss-text: #0B0D11;      /* text-slate-900 */
+    --swiss-muted: #57534E;     /* text-slate-500 */
+    --swiss-ink: #0B0D11;       /* text-slate-900 */
+    --swiss-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  .dark {
+    /* Focus Dark Mode */
+    --swiss-bg: #0B0D11;
+    --swiss-surface: #12141A;
+    --swiss-border: #2A2F3A;
+    --swiss-text: #E7E9EE;
+    --swiss-muted: #94A0B4;
+    --swiss-ink: #F3F4F6;
+    --swiss-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.8), 0 1px 2px -1px rgb(0 0 0 / 0.6);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--swiss-bg);
+    color: var(--swiss-text);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Skip-to-content link — always keyboard reachable */
+  #skip-to-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translatey(-100%);
+    padding: 0.75rem 1.5rem;
+    background: var(--swiss-text);
+    color: var(--swiss-bg);
+    font-weight: 700;
+    font-size: 0.875rem;
+    z-index: 99999;
+    transition: transform 0.15s ease;
+    border-radius: 0 0 6px 0;
+    box-shadow: var(--swiss-shadow);
+  }
+
+  #skip-to-content:focus {
+    transform: translatey(0);
+    outline: 3px solid #F59E0B;
+    outline-offset: 2px;
+  }
+
+  /* ARIA live announcer — visible but off-screen for screen readers */
+  [aria-live="polite"], [aria-live="assertive"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Focus rings — WCAG AAA visible focus */
+  *:focus-visible {
+    outline: 3px solid #F59E0B;
+    outline-offset: 2px;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid #F59E0B;
+    outline-offset: 2px;
+  }
+
+  /* Selection color — Swiss amber */
+  ::selection {
+    background: #F59E0B;
+    color: #0B0D11;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--swiss-ink);
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+
+  p { margin: 0 0 1rem 0; }
+
+  /* Monospace telemetry readouts */
+  .telemetry {
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: "liga" 0, "calt" 0;
+  }
+
+  .telemetry-xs { font-size: 0.75rem; line-height: 1.125; }
+  .telemetry-sm { font-size: 0.875rem; line-height: 1.25; }
+  .telemetry-base { font-size: 1rem; line-height: 1.375; }
+
+  /* Dyslexia-friendly spacing & open shapes */
+  .dyslexic {
+    letter-spacing: 0.05em;
+    word-spacing: 0.1em;
+    line-height: 1.7;
+  }
+
+  /* Bionic reading: bold first part of each word (applied via JS spans) */
+  .bionic strong {
+    font-weight: 700;
+    color: var(--swiss-text);
+  }
+
+  /* High-contrast AAA mode */
+  .contrast-aaa {
+    --swiss-bg: #FFFFFF;
+    --swiss-surface: #FFFFFF;
+    --swiss-border: #000000;
+    --swiss-text: #000000;
+    --swiss-muted: #333333;
+    --swiss-ink: #000000;
+  }
+  .dark.contrast-aaa {
+    --swiss-bg: #000000;
+    --swiss-surface: #000000;
+    --swiss-border: #FFFFFF;
+    --swiss-text: #FFFFFF;
+    --swiss-muted: #AAAAAA;
+    --swiss-ink: #FFFFFF;
+  }
+
+  /* Prefers reduced motion — disable animations/spins/pulses for vestibular safety */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .animate-spin,
+    .animate-pulse {
+      animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  .swiss-card {
+    background: var(--swiss-surface);
+    border: 1px solid var(--swiss-border);
+    border-radius: 10px;
+    box-shadow: var(--swiss-shadow);
+    color: var(--swiss-text);
+  }
+
+  .swiss-border {
+    border-color: var(--swiss-border);
+  }
+
+  .swiss-text {
+    color: var(--swiss-text);
+  }
+
+  .swiss-muted {
+    color: var(--swiss-muted);
+  }
+
+  .badge-amber {
+    background: #F59E0B;
+    color: #0B0D11;
+  }
+
+  .badge-emerald {
+    background: #10B981;
+    color: #0B0D11;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0B0D11;
+    color: #FAF8F5;
+    border: 1px solid #0B0D11;
+    border-radius: 6px;
+    padding: 0.625rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: transform 0.05s ease, box-shadow 0.1s ease;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #1A1D26;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: translatey(0.5px) scale(0.985);
+  }
+
+  /* Focus Dark: the default obsidian button would disappear into the page
+   * background, so primary actions switch to amber-on-obsidian. */
+  .dark .btn-primary {
+    background: #F59E0B;
+    color: #0B0D11;
+    border-color: #F59E0B;
+  }
+
+  .dark .btn-primary:hover:not(:disabled) {
+    background: #FBBF24;
+    color: #0B0D11;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+  }
+
+  /* AAA dark mode: white/amber on pure obsidian exceeds AAA contrast while
+   * keeping the amber action identity. */
+  .dark.contrast-aaa .btn-primary {
+    background: #000000;
+    color: #FFFFFF;
+    border: 2px solid #F59E0B;
+  }
+
+  .dark.contrast-aaa .btn-primary:hover:not(:disabled) {
+    background: #0B0D11;
+    color: #FFD54F;
+    border-color: #FFFFFF;
+    box-shadow: none;
+  }
+
+  .btn-ghost:active:not(:disabled) {
+    transform: translatey(0.5px) scale(0.985);
+    background: rgba(0, 0, 0, 0.08);
+  }
+  .dark .btn-ghost:active:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Active/pressed micro-interaction for preset + control buttons */
+  .cognitive-control:active {
+    transform: scale(0.96);
+    background: rgba(245, 158, 11, 0.25);
+  }
+  .dark .cognitive-control:active {
+    background: rgba(245, 158, 11, 0.15);
+  }
+
+  /* Toast notification container */
+  #toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--swiss-border);
+    border-radius: 6px;
+    background: var(--swiss-surface);
+    color: var(--swiss-text);
+    box-shadow: var(--swiss-shadow);
+    min-width: 220px;
+    animation: toastIn 220ms ease-out;
+    font-size: 0.875rem;
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translatey(12px); }
+    to { opacity: 1; transform: translatey(0); }
+  }
+  .toast-success {
+    border-left: 3px solid #10B981;
+  }
+  .toast-info {
+    border-left: 3px solid #F59E0B;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--swiss-text);
+    border: 1px solid var(--swiss-border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .dark .btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Section bento grid */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Level 1 — calm: huge primary action card */
+  .calm-anchor-card {
+    background: var(--swiss-surface);
+    border: 2px solid var(--swiss-border);
+    border-radius: 10px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+
+  /* Simplified, high-contrast controls for cognitive load */
+  .cognitive-control {
+    background: var(--swiss-surface);
+    border: 1px solid var(--swiss-border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+}
