@@ -105,6 +105,26 @@ export type Deadline = string & { __brand: "Deadline" };
 export type Metric = string & { __brand: "Metric" };
 
 // ---------------------------------------------------------------------------
+// Decompression metrics for audit trail and judge evaluation
+// ---------------------------------------------------------------------------
+
+export interface DecompressionMetrics {
+  rawWordCount: number;
+  compressedWordCount: number;
+  cognitiveLoadReductionPct: number;
+  extractedEntitiesCount: number;
+  compileLatencyMs: number;
+}
+
+export const DecompressionMetricsSchema = z.object({
+  rawWordCount: z.number().int().nonnegative(),
+  compressedWordCount: z.number().int().nonnegative(),
+  cognitiveLoadReductionPct: z.number().min(0).max(100),
+  extractedEntitiesCount: z.number().int().nonnegative(),
+  compileLatencyMs: z.number().int().nonnegative(),
+});
+
+// ---------------------------------------------------------------------------
 // Extracted hard tokens (deterministic parser output)
 // ---------------------------------------------------------------------------
 
@@ -303,4 +323,48 @@ export type SessionEvidenceEnvelope = z.infer<typeof SessionEvidenceEnvelopeSche
 
 export function validateSessionEvidence(envelope: unknown): SessionEvidenceEnvelope {
   return SessionEvidenceEnvelopeSchema.parse(envelope);
+}
+
+// ---------------------------------------------------------------------------
+// Enhanced types for Phase 2 requirements
+// ---------------------------------------------------------------------------
+
+export interface DecompressionMetrics {
+  rawWordCount: number;
+  compressedWordCount: number;
+  cognitiveLoadReductionPct: number;
+  extractedEntitiesCount: number;
+  compileLatencyMs: number;
+}
+
+export type EnhancedForgeStateCapsule = ForgeStateCapsule & {
+  metrics?: DecompressionMetrics;
+  tier1?: {
+    title: "Calm Next-Step";
+    summary: string;
+    one_sentence_summary: string;
+  };
+  tier2?: {
+    title: "Structured Tactical Plan";
+    anchor: string;
+    two_minute_anchor: string;
+    mental_state: string;
+    dead_ends: DeadEndEntry[];
+    micro_steps: MicroStep[];
+  };
+  tier3?: {
+    title: "Full Context & Handoff Capsule";
+    extracted_tokens: ExtractedTokens;
+    raw_vs_compiled_diff?: string;
+    open_blockers?: string[];
+    dependency_list?: string[];
+  };
+}
+
+export type EnhancedFidelityReceipt = FidelityReceipt & {
+  grounding_score: number;
+  verified_entities: string[];
+  ungrounded_entities: string[];
+  deterministic_fallback_used: boolean;
+  signature: string;
 }
