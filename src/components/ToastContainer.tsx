@@ -38,11 +38,12 @@ export function ToastContainer() {
     // Expose to console for ad-hoc judge demo use.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).showToast = showToast;
+    const currentTimers = timersRef.current;
 
     return () => {
       unsubscribe();
-      timersRef.current.forEach((timer) => clearTimeout(timer));
-      timersRef.current.clear();
+      currentTimers.forEach((timer) => clearTimeout(timer));
+      currentTimers.clear();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (window as any).showToast;
     };

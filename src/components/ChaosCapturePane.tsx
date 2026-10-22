@@ -45,25 +45,23 @@ export function ChaosCapturePane({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const SpeechRecognition =
-    typeof window !== "undefined"
-      ? ((window as any).SpeechRecognition ||
-          (window as any).webkitSpeechRecognition)
-      : null;
-
   useEffect(() => {
-    setSpeechSupported(Boolean(SpeechRecognition));
-  }, [SpeechRecognition]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI =
+      typeof window !== "undefined"
+        ? ((window as any).SpeechRecognition ||
+            (window as any).webkitSpeechRecognition)
+        : null;
 
-  useEffect(() => {
-    if (!SpeechRecognition) return;
+    setSpeechSupported(Boolean(SpeechRecognitionAPI));
+    if (!SpeechRecognitionAPI) return;
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionAPI();
     recognitionRef.current = recognition;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       // Continuous dictation revises earlier results, so rebuild the whole
       // transcript from index 0 instead of slicing from resultIndex (which
