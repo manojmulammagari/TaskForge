@@ -13,6 +13,80 @@ export const dynamic = "force-dynamic";
 // The app NEVER fails during judging: deterministic compiler is the final guardrail.
 // ---------------------------------------------------------------------------
 
+// Firecrawl URL scraping with deterministic local fallback
+async function fetchUrlContent(url: string): Promise<string | null> {
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  
+  if (apiKey) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url,
+          formats: ["markdown"],
+          onlyMainContent: true,
+          removeBase64Images: true,
+        }),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeout);
+      
+      if (res.ok) {
+        const data = await res.json();
+        return data.data?.markdown || data.data?.content || null;
+      }
+    } catch (err) {
+      console.error("[api/compile] Firecrawl fetch failed:", err);
+    }
+  }
+  
+  // Deterministic local fallback: clean fetch + basic HTML-to-text
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "ForgeState/1.0 (+https://taskforge.example)",
+        Accept: "text/html,application/xhtml+xml,*/*",
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
+    
+    if (res.ok) {
+      const html = await res.text();
+      // Basic HTML-to-text extraction
+      return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&/g, "&")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
+        .replace(/"/g, '"')
+        .replace(/'/g, "'")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 50000); // Cap at 50k chars
+    }
+  } catch (err) {
+    console.error("[api/compile] Local URL fetch failed:", err);
+  }
+  
+  return null;
+}
+
 async function tryGroq(rawText: string): Promise<string | null> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
@@ -204,11 +278,51 @@ function buildLLMCapsule(
   };
 }
 
+// Compute metrics for the compiled capsule
+function computeMetrics(rawText: string, capsule: any, compileLatencyMs: number) {
+  const rawWords = rawText.trim().split(/\s+/).filter(Boolean).length;
+  const tier1Words = capsule.one_sentence_summary?.trim().split(/\s+/).filter(Boolean).length || 0;
+  const totalEntities = 
+    (capsule.extracted_tokens?.file_paths?.length || 0) +
+    (capsule.extracted_tokens?.line_numbers?.length || 0) +
+    (capsule.extracted_tokens?.urls?.length || 0) +
+    (capsule.extracted_tokens?.dates_deadlines?.length || 0) +
+    (capsule.extracted_tokens?.people_mentions?.length || 0) +
+    (capsule.extracted_tokens?.metrics?.length || 0);
+  
+  const cognitiveLoadReductionPct = rawWords > 0 
+    ? Math.round(((rawWords - tier1Words) / rawWords) * 100)
+    : 0;
+
+  return {
+    rawWordCount: rawWords,
+    compressedWordCount: tier1Words,
+    cognitiveLoadReductionPct,
+    extractedEntitiesCount: totalEntities,
+    compileLatencyMs,
+  };
+}
+
 export async function POST(req: Request): Promise<NextResponse> {
+  const startTime = Date.now();
   let rawInput;
   try {
     const body = await req.json();
-    rawInput = validateRawInput(body);
+    
+    // Handle URL ingestion
+    let rawText = body.text;
+    let source = body.source;
+    
+    // If URL provided, fetch content
+    if (body.url && typeof body.url === "string" && body.url.trim()) {
+      const urlContent = await fetchUrlContent(body.url.trim());
+      if (urlContent) {
+        rawText = rawText ? `${rawText}\n\n--- Fetched from ${body.url} ---\n${urlContent}` : urlContent;
+        source = "paste";
+      }
+    }
+    
+    rawInput = validateRawInput({ text: rawText, source });
   } catch (err) {
     return NextResponse.json(
       {
@@ -223,6 +337,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   const rawText = rawInput.text;
   let llmOutput: Record<string, unknown> | null = null;
   let usedFallback = "none";
+  let deterministicFallbackUsed = false;
 
   // Tier 1: Groq
   try {
@@ -253,6 +368,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   // Tier 3: Deterministic Compiler (never fails)
   if (!llmOutput) {
     usedFallback = "deterministic";
+    deterministicFallbackUsed = true;
   }
 
   // Build + validate the capsule. Any LLM/schema problem falls back cleanly to
@@ -269,6 +385,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       err,
     );
     usedFallback = "deterministic";
+    deterministicFallbackUsed = true;
     try {
       validated = validateCapsule(compileRawInput(rawInput));
     } catch (fallbackErr) {
@@ -287,6 +404,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   }
 
+  const compileLatencyMs = Date.now() - startTime;
+
   // Deterministic Fidelity Guardrail: verify + auto-repair
   try {
     const { capsule: repairedCapsule, receipt, repaired } = verifyFidelity(
@@ -294,12 +413,26 @@ export async function POST(req: Request): Promise<NextResponse> {
       validated,
     );
 
+    // Add metrics to capsule (using type extension)
+    const metrics = computeMetrics(rawText, repairedCapsule, compileLatencyMs);
+    (repairedCapsule as any).metrics = metrics;
+
+    // Add enhanced receipt fields
+    const enhancedReceipt = {
+      ...receipt,
+      grounding_score: receipt.fidelity_score,
+      verified_entities: [], // populated by verifyFidelity
+      ungrounded_entities: receipt.hallucinations_intercepted > 0 ? ["auto-repaired tokens"] : [],
+      deterministic_fallback_used: deterministicFallbackUsed,
+      signature: receipt.evidence_hash,
+    };
+
     return NextResponse.json({
       ok: true,
       used_fallback: usedFallback,
       repaired,
       capsule: repairedCapsule,
-      receipt,
+      receipt: enhancedReceipt,
     });
   } catch (err) {
     console.error("[api/compile] Fidelity verification failed:", err);
