@@ -33,6 +33,7 @@ export default function RootLayout({
           aria-live="polite"
           aria-atomic="true"
           className="pointer-events-none"
+          suppressHydrationWarning
         ></div>
 
         <header className="sticky top-0 z-40 border-b border-b-swiss-border bg-swiss-bg/95 backdrop-blur">
