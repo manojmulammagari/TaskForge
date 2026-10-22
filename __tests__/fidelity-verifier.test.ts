@@ -119,4 +119,49 @@ describe("verifyFidelity", () => {
     expect(receipt.verification_passed).toBe(true);
     expect(receipt.fidelity_score).toBe(100);
   });
+
+  it("The Hallucination Trap: intercepts hallucinated file paths not in raw input", () => {
+    const raw =
+      "Fix src/lib/export-pipeline.ts line 302. Must ship by Monday, November 3rd.";
+    // Capsule contains a hallucinated file path that doesn't exist in raw
+    const capsule: ForgeStateCapsule = {
+      ...baseCapsule,
+      one_sentence_summary: "Export pipeline times out, check src/lib/export-pipeline.ts and src/lib/nonexistent-helper.ts",
+      two_minute_anchor: "Open src/lib/export-pipeline.ts at line 302.",
+      mental_state: "Blocked",
+      extracted_tokens: {
+        file_paths: ["src/lib/export-pipeline.ts", "src/lib/nonexistent-helper.ts"],
+        line_numbers: [302],
+        urls: [],
+        dates_deadlines: ["Monday, November 3rd"],
+        people_mentions: [],
+        metrics: [],
+      },
+    };
+    const { capsule: repaired, receipt } = verifyFidelity(raw, capsule);
+    
+    // The hallucinated file path should be intercepted and dropped
+    expect(receipt.hallucinations_intercepted).toBeGreaterThan(0);
+    expect(repaired.auto_repaired).toBe(true);
+    expect(repaired.fidelity_score).toBe(100);
+    
+    // The hallucinated file should be stripped from extracted_tokens
+    expect(repaired.extracted_tokens.file_paths).not.toContain("src/lib/nonexistent-helper.ts");
+    expect(repaired.extracted_tokens.file_paths).toContain("src/lib/export-pipeline.ts");
+    
+    // The interception should be recorded
+    const intercepted = receipt.hallucinations_intercepted;
+    expect(intercepted).toBeGreaterThan(0);
+  });
+
+  it("extracts 'times out after 30 seconds' metric and 'line: 302' reference", () => {
+    const raw = "The export pipeline times out after 30 seconds. Check src/lib/export-pipeline.ts line: 302 for the issue.";
+    const tokens = extractTokens(raw);
+    
+    // Should extract the metric with full unit name
+    expect(tokens.metrics.some(m => m.includes("30 seconds"))).toBe(true);
+    
+    // Should extract line reference with "line:" format
+    expect(tokens.line_numbers).toContain(302);
+  });
 });

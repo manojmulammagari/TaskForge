@@ -41,4 +41,44 @@ describe("URL capsule compression", () => {
     expect(parseCapsuleHash("#capsule=%E0%A4%A")).toBeNull();
     expect(parseCapsuleHash("")).toBeNull();
   });
+
+  it("safely compresses and decompresses a capsule with a massive git diff (>50KB)", () => {
+    const massiveDiff = "x".repeat(60000); // 60KB diff
+    const capsule = {
+      summary: "Large diff test",
+      anchor: "Check the diff",
+      raw_vs_compiled_diff: massiveDiff,
+      source_input: "y".repeat(30000), // 30KB input
+      extracted_tokens: {
+        file_paths: ["src/large-file.ts"],
+        line_numbers: [1, 2, 3],
+        urls: [],
+        dates_deadlines: [],
+        people_mentions: [],
+        metrics: [],
+      },
+      fidelity_score: 100,
+    };
+
+    const compressed = compressCapsule(capsule);
+    // Should not throw and should produce a valid base64url string
+    expect(compressed).toBeDefined();
+    expect(typeof compressed).toBe("string");
+    expect(compressed.length).toBeGreaterThan(0);
+
+    const restored = decompressCapsule(compressed);
+    expect(restored).not.toBeNull();
+    expect(restored).toBeDefined();
+    
+    // Verify the truncated fields are present and truncated
+    const restoredCapsule = restored as Record<string, unknown>;
+    expect(restoredCapsule.raw_vs_compiled_diff).toContain("[truncated for URL safety]");
+    expect(restoredCapsule.source_input).toContain("[truncated for URL safety]");
+    
+    // Original massive content should be truncated
+    const restoredDiff = restoredCapsule.raw_vs_compiled_diff as string;
+    const restoredInput = restoredCapsule.source_input as string;
+    expect(restoredDiff.length).toBeLessThan(massiveDiff.length);
+    expect(restoredInput.length).toBeLessThan(30000);
+  });
 });
