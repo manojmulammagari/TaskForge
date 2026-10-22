@@ -96,15 +96,16 @@ export default function ForgeStatePage() {
   const [screenReaderAudio, setScreenReaderAudio] = useState(true);
 
   const announcerRef = useRef<HTMLElement | null>(null);
+  const speakAnnouncerRef = useRef<((message: string) => void) | null>(null);
 
-  const speakAnnouncer = useCallback((message: string): void => {
-    const el =
-      announcerRef.current ?? document.getElementById(ANNOUNCER_ID);
-    if (el) el.textContent = message;
-  }, []);
-
+  // Initialize the announcer ref once
   useEffect(() => {
-    announcerRef.current = document.getElementById(ANNOUNCER_ID);
+    const el = document.getElementById(ANNOUNCER_ID);
+    announcerRef.current = el;
+    speakAnnouncerRef.current = (message: string) => {
+      const announcer = announcerRef.current ?? document.getElementById(ANNOUNCER_ID);
+      if (announcer) announcer.textContent = message;
+    };
   }, []);
 
   // Align React state with the pre-hydration inline script in layout.tsx. We
@@ -186,50 +187,59 @@ export default function ForgeStatePage() {
     }
   }, [highContrast, themeReady]);
 
-  // Restore a shareable #capsule=... link on first load.
+  // Restore a shareable #capsule=... link on mount and hash change.
   useEffect(() => {
-    const token = parseCapsuleHash(window.location.hash);
-    if (!token) return;
+    const restoreFromHash = () => {
+      const token = parseCapsuleHash(window.location.hash);
+      if (!token) return;
 
-    const decompressed = decompressCapsule(token);
-    if (!decompressed) {
-      showToast({
-        title: "Could not restore shared capsule — the link is corrupt.",
-        variant: "alert",
-      });
-      speakAnnouncer(
-        "The shared capsule link is invalid or corrupted. Please forge a new capsule.",
-      );
-      return;
-    }
+      const decompressed = decompressCapsule(token);
+      if (!decompressed) {
+        showToast({
+          title: "Could not restore shared capsule — the link is corrupt.",
+          variant: "alert",
+        });
+        speakAnnouncerRef.current?.(
+          "The shared capsule link is invalid or corrupted. Please forge a new capsule.",
+        );
+        return;
+      }
 
-    try {
-      const restored = validateCapsule(decompressed);
-      // Re-verify against the original capture so shared links arrive with a
-      // receipt and all Composio dispatch targets immediately enabled.
-      const verified = verifyFidelity(restored.source_input, restored);
-      setCapsule(verified.capsule);
-      setReceipt(verified.receipt);
-      setRawInput(verified.capsule.source_input);
-      setSource(verified.capsule.source_type);
-      setDispatched(null);
-      setModalOpen(false);
-      setUsedFallback("shared-link");
-      persistCapsuleHistory(verified.capsule);
-      speakAnnouncer(
-        "Shared resumption capsule restored with a fidelity receipt.",
-      );
-    } catch (err) {
-      showToast({
-        title: "Could not restore shared capsule — invalid capsule data.",
-        variant: "alert",
-      });
-      speakAnnouncer(
-        "The shared capsule data is invalid. Please forge a new capsule.",
-      );
-      console.error("[ForgeState] Failed to restore capsule hash:", err);
-    }
-  }, [speakAnnouncer]);
+      try {
+        const restored = validateCapsule(decompressed);
+        // Re-verify against the original capture so shared links arrive with a
+        // receipt and all Composio dispatch targets immediately enabled.
+        const verified = verifyFidelity(restored.source_input, restored);
+        setCapsule(verified.capsule);
+        setReceipt(verified.receipt);
+        setRawInput(verified.capsule.source_input);
+        setSource(verified.capsule.source_type);
+        setDispatched(null);
+        setModalOpen(false);
+        setUsedFallback("shared-link");
+        persistCapsuleHistory(verified.capsule);
+        speakAnnouncerRef.current?.(
+          "Shared resumption capsule restored with a fidelity receipt.",
+        );
+      } catch (err) {
+        showToast({
+          title: "Could not restore shared capsule — invalid capsule data.",
+          variant: "alert",
+        });
+        speakAnnouncerRef.current?.(
+          "The shared capsule data is invalid. Please forge a new capsule.",
+        );
+        console.error("[ForgeState] Failed to restore capsule hash:", err);
+      }
+    };
+
+    // Run on mount
+    restoreFromHash();
+
+    // Listen for hash changes (e.g., user navigates to a #capsule=... link)
+    window.addEventListener("hashchange", restoreFromHash);
+    return () => window.removeEventListener("hashchange", restoreFromHash);
+  }, []); // speakAnnouncerRef is stable
 
   const handlePreset = useCallback(
     (id: string) => {
@@ -241,9 +251,9 @@ export default function ForgeStatePage() {
       setReceipt(null);
       setDispatched(null);
       setModalOpen(false);
-      speakAnnouncer(`Loaded preset: ${preset.title}`);
+      speakAnnouncerRef.current?.(`Loaded preset: ${preset.title}`);
     },
-    [speakAnnouncer],
+    [], // speakAnnouncerRef is stable
   );
 
   const handleForge = useCallback(async () => {
@@ -251,13 +261,13 @@ export default function ForgeStatePage() {
     try {
       validated = validateRawInput({ text: rawInput, source });
     } catch {
-      speakAnnouncer("Please enter some input before forging a capsule.");
+      speakAnnouncerRef.current?.("Please enter some input before forging a capsule.");
       return;
     }
 
     setIsForging(true);
     setLoading(true);
-    speakAnnouncer("Compiling your resumption capsule...");
+    speakAnnouncerRef.current?.("Compiling your resumption capsule...");
 
     try {
       const res = await fetch("/api/compile", {
@@ -289,17 +299,17 @@ export default function ForgeStatePage() {
       persistCapsuleHistory(compiledCapsule);
 
       if (json.repaired) {
-        speakAnnouncer(
+        speakAnnouncerRef.current?.(
           "Fidelity guardrail intercepted dropped tokens and auto-repaired the capsule. Open the receipt to verify.",
         );
       } else {
-        speakAnnouncer("Capsule compiled. All extracted tokens survived verification.");
+        speakAnnouncerRef.current?.("Capsule compiled. All extracted tokens survived verification.");
       }
     } catch (err) {
       setLoading(false);
       setIsForging(false);
       console.error("[ForgeState] Compile request failed:", err);
-      speakAnnouncer("Compile failed — using deterministic fallback.");
+      speakAnnouncerRef.current?.("Compile failed — using deterministic fallback.");
       showToast({
         title: "Compile API unavailable — deterministic local fallback used.",
         variant: "alert",
@@ -321,7 +331,7 @@ export default function ForgeStatePage() {
         // Preserve whatever the user was already looking at rather than
         // wiping the workspace or announcing a false success.
         console.error("[ForgeState] Local fallback failed:", fallbackErr);
-        speakAnnouncer(
+        speakAnnouncerRef.current?.(
           "Compile failed and the local fallback was unavailable. Your previous capsule was kept.",
         );
         showToast({
@@ -330,7 +340,7 @@ export default function ForgeStatePage() {
         });
       }
     }
-  }, [rawInput, source, speakAnnouncer]);
+  }, [rawInput, source]); // speakAnnouncerRef is stable
 
   const compressed = useMemo(() => {
     if (!capsule || typeof window === "undefined") return null;
@@ -359,11 +369,11 @@ export default function ForgeStatePage() {
         throw new Error("Clipboard API unavailable");
       }
       await navigator.clipboard.writeText(url);
-      speakAnnouncer("Shareable capsule URL copied to clipboard.");
+      speakAnnouncerRef.current?.("Shareable capsule URL copied to clipboard.");
       showToast({ title: "Capsule URL copied to clipboard", variant: "success" });
     } catch (err) {
       console.error("[ForgeState] Clipboard copy failed:", err);
-      speakAnnouncer(
+      speakAnnouncerRef.current?.(
         "Could not copy the capsule URL. Please copy it from the address bar.",
       );
       showToast({
@@ -371,7 +381,7 @@ export default function ForgeStatePage() {
         variant: "alert",
       });
     }
-  }, [compressed, speakAnnouncer]);
+  }, [compressed]); // speakAnnouncerRef is stable
 
   const handleComposioDispatch = useCallback(
     async (target: "github" | "slack" | "linear" | "notion") => {
@@ -408,7 +418,7 @@ export default function ForgeStatePage() {
           console.error("[ForgeState] Composio dispatch error:", json.error);
         }
 
-        speakAnnouncer(
+        speakAnnouncerRef.current?.(
           dispatchedSuccess && json?.sandbox
             ? `Composio sandbox simulation complete for ${target}. Receipt generated.`
             : dispatchedSuccess
@@ -423,14 +433,14 @@ export default function ForgeStatePage() {
         console.error("[ForgeState] Composio dispatch request failed:", err);
         setLoading(false);
         setDispatched({ target, success: false });
-        speakAnnouncer("Composio dispatch failed.");
+        speakAnnouncerRef.current?.("Composio dispatch failed.");
         showToast({
           title: `Composio ${target} dispatch failed.`,
           variant: "alert",
         });
       }
     },
-    [capsule, receipt, speakAnnouncer],
+    [capsule, receipt], // speakAnnouncerRef is stable
   );
 
   const handleOpenReceipt = useCallback(() => setModalOpen(true), []);
