@@ -156,7 +156,7 @@ export function ChaosCapturePane({
           value={rawInput}
           onChange={handleChange}
           rows={8}
-          className="w-full py-3 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono telemetry-base focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none"
+          className="w-full py-3 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono telemetry-base focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none placeholder:text-stone-600 dark:placeholder:text-stone-400 placeholder:opacity-100"
           placeholder="Paste your chaotic brain dump: errors, stack traces, links, names, deadlines…"
           aria-label="Raw chaotic input"
         />

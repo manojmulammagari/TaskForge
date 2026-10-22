@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  Play,
   Square,
   Sparkles,
   AlertTriangle,
   ShieldCheck,
   Terminal,
-  Activity,
 } from "lucide-react";
 import type { RawInput } from "@/lib/flowdesk-contracts";
 
@@ -27,12 +25,6 @@ interface JudgeControlBarProps {
     repaired: number;
   } | null;
   usedFallback: string;
-  onForge: () => void;
-  loading: boolean;
-  isForging: boolean;
-  rawInput: string;
-  setRawInput: (v: string) => void;
-  setSource: (v: "text" | "voice" | "paste") => void;
 }
 
 export function JudgeControlBar({
@@ -40,12 +32,6 @@ export function JudgeControlBar({
   onPreset,
   telemetry,
   usedFallback,
-  onForge,
-  loading,
-  isForging,
-  rawInput,
-  setRawInput,
-  setSource,
 }: JudgeControlBarProps) {
   return (
     <div
@@ -98,20 +84,6 @@ export function JudgeControlBar({
               Fidelity: {telemetry?.fidelity ?? 100}%
             </span>
           </div>
-
-          <button
-            onClick={onForge}
-            disabled={loading || isForging || rawInput.trim().length === 0}
-            className="btn-primary flex items-center gap-2 disabled:opacity-50"
-            aria-label="Forge capsule from raw input"
-          >
-            {loading || isForging ? (
-              <Activity className="w-4 h-4 animate-spin" />
-            ) : (
-              <Play className="w-4 h-4" />
-            )}
-            <span>{loading || isForging ? "Forging…" : "Forge Capsule"}</span>
-          </button>
         </div>
       </div>
 
