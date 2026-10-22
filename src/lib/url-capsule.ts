@@ -39,8 +39,28 @@ function decodeBase64(value: string): Uint8Array {
   return binaryToBytes(atob(value));
 }
 
+const MAX_FIELD_LENGTH = 20000;
+
+function truncateField(obj: Record<string, unknown>, field: string): void {
+  if (obj && typeof obj === "object" && field in obj) {
+    const value = obj[field];
+    if (typeof value === "string" && value.length > MAX_FIELD_LENGTH) {
+      obj[field] = value.slice(0, MAX_FIELD_LENGTH) + "\n... [truncated for URL safety] ...";
+    }
+  }
+}
+
 export function compressCapsule(capsule: unknown): string {
-  const json = JSON.stringify(capsule);
+  // Create a safe shallow clone to avoid mutating the original
+  const safeCapsule: Record<string, unknown> = capsule && typeof capsule === "object" 
+    ? { ...(capsule as Record<string, unknown>) }
+    : {};
+
+  // Truncate large fields that could cause URL size limits / HTTP 414 errors
+  truncateField(safeCapsule, "raw_vs_compiled_diff");
+  truncateField(safeCapsule, "source_input");
+
+  const json = JSON.stringify(safeCapsule);
   if (json === undefined) {
     throw new Error("Cannot compress an undefined capsule");
   }

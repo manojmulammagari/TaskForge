@@ -279,7 +279,7 @@ function buildLLMCapsule(
 }
 
 // Compute metrics for the compiled capsule
-function computeMetrics(rawText: string, capsule: any, compileLatencyMs: number) {
+function computeMetrics(rawText: string, capsule: any, compileLatencyMs: number, verificationMetrics?: any) {
   const rawWords = rawText.trim().split(/\s+/).filter(Boolean).length;
   const tier1Words = capsule.one_sentence_summary?.trim().split(/\s+/).filter(Boolean).length || 0;
   const totalEntities = 
@@ -294,12 +294,32 @@ function computeMetrics(rawText: string, capsule: any, compileLatencyMs: number)
     ? Math.round(((rawWords - tier1Words) / rawWords) * 100)
     : 0;
 
+  // Enhanced metrics for judge evaluation
+  const rawChaosTokenCount = rawText.split(/\s+/).filter(Boolean).length + 
+    (rawText.match(/\n/g) || []).length * 2;
+  
+  const decompressedActionableNodes = 
+    (capsule.micro_steps?.length || 0) +
+    (capsule.dead_ends?.length || 0) +
+    totalEntities;
+  
+  const baseResumptionTime = 30;
+  const compressionRatio = rawText.length > 0 ? Math.min(capsule.one_sentence_summary?.length / rawText.length || 0, 1) : 0;
+  const estimatedResumptionTimeSavedMin = Math.round(baseResumptionTime * (1 - compressionRatio));
+  
+  const hallucinationInterceptionRate = verificationMetrics?.hallucinationInterceptionRate ?? 
+    (totalEntities > 0 ? Math.round(((verificationMetrics?.hallucinationsIntercepted || 0) / totalEntities) * 100) : 100);
+
   return {
     rawWordCount: rawWords,
     compressedWordCount: tier1Words,
     cognitiveLoadReductionPct,
     extractedEntitiesCount: totalEntities,
     compileLatencyMs,
+    rawChaosTokenCount,
+    decompressedActionableNodes,
+    estimatedResumptionTimeSavedMin,
+    hallucinationInterceptionRate,
   };
 }
 
@@ -408,21 +428,21 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   // Deterministic Fidelity Guardrail: verify + auto-repair
   try {
-    const { capsule: repairedCapsule, receipt, repaired } = verifyFidelity(
+    const { capsule: repairedCapsule, receipt, repaired, metrics: verificationMetrics } = verifyFidelity(
       rawText,
       validated,
     );
 
-    // Add metrics to capsule (using type extension)
-    const metrics = computeMetrics(rawText, repairedCapsule, compileLatencyMs);
+    // Add enhanced metrics to capsule (using type extension)
+    const metrics = computeMetrics(rawText, repairedCapsule, compileLatencyMs, verificationMetrics);
     (repairedCapsule as any).metrics = metrics;
 
     // Add enhanced receipt fields
     const enhancedReceipt = {
       ...receipt,
       grounding_score: receipt.fidelity_score,
-      verified_entities: [], // populated by verifyFidelity
-      ungrounded_entities: receipt.hallucinations_intercepted > 0 ? ["auto-repaired tokens"] : [],
+      verified_entities: verificationMetrics?.verifiedEntities ?? [],
+      ungrounded_entities: verificationMetrics?.ungroundedEntities ?? [],
       deterministic_fallback_used: deterministicFallbackUsed,
       signature: receipt.evidence_hash,
     };

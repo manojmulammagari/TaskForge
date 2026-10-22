@@ -105,26 +105,6 @@ export type Deadline = string & { __brand: "Deadline" };
 export type Metric = string & { __brand: "Metric" };
 
 // ---------------------------------------------------------------------------
-// Decompression metrics for audit trail and judge evaluation
-// ---------------------------------------------------------------------------
-
-export interface DecompressionMetrics {
-  rawWordCount: number;
-  compressedWordCount: number;
-  cognitiveLoadReductionPct: number;
-  extractedEntitiesCount: number;
-  compileLatencyMs: number;
-}
-
-export const DecompressionMetricsSchema = z.object({
-  rawWordCount: z.number().int().nonnegative(),
-  compressedWordCount: z.number().int().nonnegative(),
-  cognitiveLoadReductionPct: z.number().min(0).max(100),
-  extractedEntitiesCount: z.number().int().nonnegative(),
-  compileLatencyMs: z.number().int().nonnegative(),
-});
-
-// ---------------------------------------------------------------------------
 // Extracted hard tokens (deterministic parser output)
 // ---------------------------------------------------------------------------
 
@@ -326,7 +306,7 @@ export function validateSessionEvidence(envelope: unknown): SessionEvidenceEnvel
 }
 
 // ---------------------------------------------------------------------------
-// Enhanced types for Phase 2 requirements
+// Cognitive Load & Decompression Metrics (for judge evaluation & UI)
 // ---------------------------------------------------------------------------
 
 export interface DecompressionMetrics {
@@ -335,7 +315,74 @@ export interface DecompressionMetrics {
   cognitiveLoadReductionPct: number;
   extractedEntitiesCount: number;
   compileLatencyMs: number;
+  // Before vs After Cognitive Load Metric for judge evaluation
+  rawChaosTokenCount: number;      // Total tokens in raw input (lines, symbols, etc.)
+  decompressedActionableNodes: number; // Actionable items after compilation
+  estimatedResumptionTimeSavedMin: number; // Estimated minutes saved vs manual reconstruction
+  hallucinationInterceptionRate: number;   // % of hallucinated tokens intercepted
 }
+
+export const DecompressionMetricsSchema = z.object({
+  rawWordCount: z.number().int().nonnegative(),
+  compressedWordCount: z.number().int().nonnegative(),
+  cognitiveLoadReductionPct: z.number().min(0).max(100),
+  extractedEntitiesCount: z.number().int().nonnegative(),
+  compileLatencyMs: z.number().int().nonnegative(),
+  rawChaosTokenCount: z.number().int().nonnegative(),
+  decompressedActionableNodes: z.number().int().nonnegative(),
+  estimatedResumptionTimeSavedMin: z.number().min(0),
+  hallucinationInterceptionRate: z.number().min(0).max(100),
+});
+
+export interface CognitiveLevel {
+  level: 1 | 2 | 3;
+  label: string;
+  description: string;
+  uiDensity: "minimal" | "balanced" | "full";
+}
+
+export const COGNITIVE_LEVELS: CognitiveLevel[] = [
+  {
+    level: 1,
+    label: "Calm",
+    description: "Overwhelmed / low working memory — only the #1 next action",
+    uiDensity: "minimal",
+  },
+  {
+    level: 2,
+    label: "Structured Handoff",
+    description: "Balanced focus — mental state, dead ends, ordered micro-steps",
+    uiDensity: "balanced",
+  },
+  {
+    level: 3,
+    label: "Full Technical Audit",
+    description: "Complete context — raw diff, fidelity receipt, Composio dispatch",
+    uiDensity: "full",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Composio Dispatch Types
+// ---------------------------------------------------------------------------
+
+export interface ComposioDispatchPayload {
+  capsule_id: string;
+  target: "github" | "slack" | "linear" | "notion";
+  payload: Record<string, unknown>;
+  sandbox: boolean;
+}
+
+export const ComposioDispatchPayloadSchema = z.object({
+  capsule_id: ResilientUuidSchema,
+  target: z.enum(["github", "slack", "linear", "notion"]),
+  payload: z.record(z.string(), z.unknown()),
+  sandbox: z.boolean().default(true),
+});
+
+// ---------------------------------------------------------------------------
+// Enhanced types for Phase 2 requirements
+// ---------------------------------------------------------------------------
 
 export type EnhancedForgeStateCapsule = ForgeStateCapsule & {
   metrics?: DecompressionMetrics;
@@ -359,7 +406,7 @@ export type EnhancedForgeStateCapsule = ForgeStateCapsule & {
     open_blockers?: string[];
     dependency_list?: string[];
   };
-}
+};
 
 export type EnhancedFidelityReceipt = FidelityReceipt & {
   grounding_score: number;
