@@ -137,25 +137,27 @@ export function ChaosCapturePane({
       </div>
 
       <div className="flex flex-col gap-2">
+        <label htmlFor="input-source" className="sr-only">Input source</label>
         <select
+          id="input-source"
           value={source}
           onChange={(e) =>
             setSource((e.target.value as "text" | "voice" | "paste"))
           }
           className="w-full py-2 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
-          aria-label="Input source"
         >
           <option value="text">Messy text input</option>
           <option value="voice">Voice dictation</option>
           <option value="paste">Paste / link dump</option>
         </select>
+        <label htmlFor="chaos-input" className="sr-only">Raw chaotic input</label>
         <textarea
+          id="chaos-input"
           value={rawInput}
           onChange={handleChange}
           rows={5}
           className="w-full py-3 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono telemetry-base focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none placeholder:text-stone-600 dark:placeholder:text-stone-400 placeholder:opacity-100"
           placeholder="Paste your chaotic brain dump: errors, stack traces, links, names, deadlines…"
-          aria-label="Raw chaotic input"
         />
         {listening ? (
           <div className="flex items-center gap-2 animate-pulse">
@@ -222,12 +224,14 @@ export function ChaosCapturePane({
                 aria-label={`Load preset ${p.id}: ${p.title}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-swiss-text">{p.title}</span>
-                  <span className="text-[10px] font-mono text-amber-600 dark:text-amber-300">
+                  <span className="text-sm font-bold text-swiss-text truncate break-words hyphens-auto">
+                    {p.title}
+                  </span>
+                  <span className="text-[10px] font-mono text-amber-600 dark:text-amber-300 shrink-0">
                     [{p.id}]
                   </span>
                 </div>
-                <span className="text-telemetry-xs text-swiss-muted">{p.subtitle}</span>
+                <span className="text-telemetry-xs text-swiss-muted truncate">{p.subtitle}</span>
               </button>
             );
           })}

@@ -123,7 +123,7 @@ export function ComposioDispatchBar({
     <div className="swiss-card p-4" aria-label="Composio 1-click dispatch bar">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-instrument bg-swiss-surface border border-swiss-border flex items-center justify-center text-xs font-mono font-bold text-swiss-text">
+          <div className="w-8 h-8 rounded-instrument bg-swiss-surface border border-swiss-border flex items-center justify-center text-xs font-mono font-bold text-swiss-text" aria-hidden="true">
             C
           </div>
           <div>
@@ -141,6 +141,7 @@ export function ComposioDispatchBar({
               onClick={() => handleComposio(t.id)}
               disabled={loading || !capsule || !receipt}
               aria-pressed={dispatched?.target === t.id}
+              aria-label={`Dispatch capsule to ${t.label}`}
               className={`flex items-center gap-2 px-3 py-2 rounded-instrument border text-sm font-mono transition-all disabled:opacity-50 ${
                 loading || !capsule || !receipt
                   ? "border-swiss-border/40 text-swiss-muted/40"
@@ -148,11 +149,10 @@ export function ComposioDispatchBar({
                     ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                     : "border-swiss-border bg-swiss-surface text-swiss-text hover:border-amber-400/50 hover:bg-amber-400/10"
               }`}
-              title={t.schema}
             >
-              <t.icon className="w-3.5 h-3.5" />
+              <t.icon className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{t.label}</span>
-              <span className="ml-auto text-[10px] opacity-60">{t.schema}</span>
+              <span className="ml-auto text-[10px] opacity-60" aria-hidden="true">{t.schema}</span>
             </button>
           ))}
         </div>

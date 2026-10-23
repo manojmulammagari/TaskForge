@@ -241,6 +241,108 @@
     color: #0B0D11;
   }
 
+  /* Light theme: high-contrast text colors for semantic colors */
+  /* Amber text on light bg (#FAF8F5): use amber-800 #92400E (7.3:1) or amber-900 #78350F (9.2:1) */
+  .text-amber-500 {
+    color: #F59E0B;
+  }
+  .dark .text-amber-500 {
+    color: #FBBF24;
+  }
+  :root:not(.dark) .text-amber-500,
+  .light .text-amber-500 {
+    color: #92400E; /* amber-800 for WCAG AAA on light bg */
+  }
+  
+  .text-amber-600 {
+    color: #D97706;
+  }
+  .dark .text-amber-600 {
+    color: #FBBF24;
+  }
+  :root:not(.dark) .text-amber-600,
+  .light .text-amber-600 {
+    color: #78350F; /* amber-900 for WCAG AAA on light bg */
+  }
+
+  .text-amber-700 {
+    color: #B45309;
+  }
+  .dark .text-amber-700 {
+    color: #FCD34D;
+  }
+  :root:not(.dark) .text-amber-700,
+  .light .text-amber-700 {
+    color: #78350F;
+  }
+
+  .text-amber-800 {
+    color: #92400E;
+  }
+  .dark .text-amber-800 {
+    color: #FCD34D;
+  }
+
+  /* Emerald text on light bg: use emerald-800 #065F46 (7.1:1) or emerald-900 #064E3B (8.5:1) */
+  .text-emerald-500 {
+    color: #10B981;
+  }
+  .dark .text-emerald-500 {
+    color: #34D399;
+  }
+  :root:not(.dark) .text-emerald-500,
+  .light .text-emerald-500 {
+    color: #065F46; /* emerald-800 for WCAG AAA on light bg */
+  }
+
+  .text-emerald-600 {
+    color: #059669;
+  }
+  .dark .text-emerald-600 {
+    color: #34D399;
+  }
+  :root:not(.dark) .text-emerald-600,
+  .light .text-emerald-600 {
+    color: #064E3B; /* emerald-900 for WCAG AAA on light bg */
+  }
+
+  .text-emerald-700 {
+    color: #047857;
+  }
+  .dark .text-emerald-700 {
+    color: #6EE7B7;
+  }
+  :root:not(.dark) .text-emerald-700,
+  .light .text-emerald-700 {
+    color: #064E3B;
+  }
+
+  .text-emerald-800 {
+    color: #065F46;
+  }
+  .dark .text-emerald-800 {
+    color: #6EE7B7;
+  }
+
+  /* Muted text on light bg: use gray-700 #374151 (7.1:1) or gray-800 #1F2937 (10.8:1) */
+  :root:not(.dark) .text-swiss-muted,
+  .light .text-swiss-muted {
+    color: #374151; /* gray-700 for WCAG AAA */
+  }
+  .dark .text-swiss-muted {
+    color: #94A0B4;
+  }
+
+  .badge-amber {
+    background: #F59E0B;
+    color: #0B0D11;
+  }
+
+  .badge-emerald {
+    background: #10B981;
+    color: #0B0D11;
+  }
+
   .btn-primary {
     display: inline-flex;
     align-items: center;
