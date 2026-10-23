@@ -142,32 +142,30 @@ export function ChaosCapturePane({
           onChange={(e) =>
             setSource((e.target.value as "text" | "voice" | "paste"))
           }
-          className="w-full py-2 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+          className="w-full py-2 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
           aria-label="Input source"
         >
           <option value="text">Messy text input</option>
           <option value="voice">Voice dictation</option>
           <option value="paste">Paste / link dump</option>
         </select>
-
         <textarea
           value={rawInput}
           onChange={handleChange}
-          rows={8}
-          className="w-full py-3 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono telemetry-base focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none placeholder:text-stone-600 dark:placeholder:text-stone-400 placeholder:opacity-100"
+          rows={5}
+          className="w-full py-3 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono telemetry-base focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none placeholder:text-stone-600 dark:placeholder:text-stone-400 placeholder:opacity-100"
           placeholder="Paste your chaotic brain dump: errors, stack traces, links, names, deadlines…"
           aria-label="Raw chaotic input"
         />
-
         {listening ? (
           <div className="flex items-center gap-2 animate-pulse">
-            <Mic className="w-4 h-4 text-amber-500" fill="currentColor" />
-            <span className="text-xs font-mono text-amber-600 dark:text-amber-400 font-bold">
+            <Mic className="w-4 h-4 text-amber-400" fill="currentColor" />
+            <span className="text-xs font-mono text-amber-600 dark:text-amber-300 font-bold">
               Listening… speak your dump
             </span>
             <button
               onClick={stopVoice}
-              className="ml-auto p-1.5 rounded-instrument border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+              className="ml-auto p-1.5 rounded-instrument border border-amber-400/30 text-amber-600 dark:text-amber-300 hover:bg-amber-400/10"
               aria-label="Stop voice dictation"
             >
               <Square className="w-3 h-3" />
@@ -178,7 +176,7 @@ export function ChaosCapturePane({
             <button
               onClick={startVoice}
               disabled={!speechSupported}
-              className="flex items-center gap-2 py-2 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 py-2 px-3 rounded-instrument border border-swiss-border bg-swiss-surface text-swiss-text text-sm font-mono hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
               aria-label="Start voice dictation"
               title={!speechSupported ? "Voice dictation not supported in this browser" : ""}
             >
@@ -187,38 +185,11 @@ export function ChaosCapturePane({
             </button>
           </div>
         )}
-      </div>
-
-      {/* One-click judge presets */}
-      <div className="border-t border-swiss-border/40 pt-3">
-        <h4 className="text-telemetry-xs font-bold text-swiss-muted mb-2">
-          Judge Demo Presets
-        </h4>
-        <div className="grid grid-cols-2 gap-3">
-          {presets.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onPreset(p.id)}
-              className="flex flex-col gap-1 p-2 rounded-instrument border border-swiss-border bg-swiss-surface text-left hover:border-amber-500/50 hover:bg-amber-500/10 transition-colors"
-              aria-label={`Load preset: ${p.title}`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-swiss-text">{p.title}</span>
-                <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400">
-                  [{p.id}]
-                </span>
-              </div>
-              <span className="text-telemetry-xs text-swiss-muted">{p.subtitle}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3">
+        {/* Forge Capsule CTA immediately available */}
         <button
-          onClick={onForge}
+          onClick={() => onForge()}
           disabled={loading || isForging || rawInput.trim().length === 0}
-          className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full btn-primary flex items-center justify-center gap-2 py-2.5 mt-1 disabled:opacity-50"
           aria-label="Forge capsule from raw input"
         >
           {loading || isForging ? (
@@ -228,6 +199,39 @@ export function ChaosCapturePane({
           )}
           {loading || isForging ? "Forging capsule…" : "Forge Capsule"}
         </button>
+      </div>
+
+      {/* One-click judge presets */}
+      <div className="border-t border-swiss-border/40 pt-3">
+        <h4 className="text-telemetry-xs font-bold text-swiss-muted mb-2">
+          Judge Demo Presets
+        </h4>
+        <div className="grid grid-cols-2 gap-3">
+          {presets.map((p) => {
+            const isSelected = rawInput.trim() === p.input.text.trim();
+            return (
+              <button
+                key={p.id}
+                onClick={() => onPreset(p.id)}
+                className={`flex flex-col gap-1 p-2 rounded-instrument border text-left transition-colors ${
+                  isSelected
+                    ? "border-amber-400 bg-amber-400/15 shadow-sm"
+                    : "border-swiss-border bg-swiss-surface hover:border-amber-400/50 hover:bg-amber-400/10"
+                }`}
+                aria-pressed={isSelected}
+                aria-label={`Load preset ${p.id}: ${p.title}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-swiss-text">{p.title}</span>
+                  <span className="text-[10px] font-mono text-amber-600 dark:text-amber-300">
+                    [{p.id}]
+                  </span>
+                </div>
+                <span className="text-telemetry-xs text-swiss-muted">{p.subtitle}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
