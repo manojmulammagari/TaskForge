@@ -81,4 +81,34 @@ describe("URL capsule compression", () => {
     expect(restoredDiff.length).toBeLessThan(massiveDiff.length);
     expect(restoredInput.length).toBeLessThan(30000);
   });
+
+  it("round-trips extreme Unicode (Telugu, Hindi, emoji) without data loss", () => {
+    const capsule = {
+      summary: "తెలుగు हिन्दी 🚀🌟 Fix the bug",
+      anchor: "తెలుగు script test: print('హలో ప్రపంచం')",
+      raw_vs_compiled_diff: "дев تيست 🎉 നമസ്തെ 你好",
+      source_input: "తెలుగు 韩语 русский العربية",
+      extracted_tokens: {
+        file_paths: ["src/తెలుగు.ts", "src/हिन्दी.py"],
+        line_numbers: [1, 2, 3],
+        urls: ["https://example.com/తెలుగు", "https://example.com/हिन्दी"],
+        dates_deadlines: ["2026-10-24", "తెలుగు deadline"],
+        people_mentions: ["@తెలుగు_dev", "@हिन्दी_user"],
+        metrics: ["30s", "100 req/s"],
+      },
+      fidelity_score: 100,
+    };
+
+    const compressed = compressCapsule(capsule);
+    expect(compressed).not.toMatch(/[+/=]/);
+
+    const restored = decompressCapsule(compressed);
+    expect(restored).not.toBeNull();
+    
+    const restoredCapsule = restored as Record<string, unknown>;
+    expect(restoredCapsule.summary).toBe(capsule.summary);
+    expect(restoredCapsule.anchor).toBe(capsule.anchor);
+    expect(restoredCapsule.raw_vs_compiled_diff).toBe(capsule.raw_vs_compiled_diff);
+    expect(restoredCapsule.source_input).toBe(capsule.source_input);
+  });
 });

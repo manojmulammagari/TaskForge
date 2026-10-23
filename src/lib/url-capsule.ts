@@ -1,9 +1,12 @@
 /**
  * ForgeState — URL Capsule Compression
  *
- * Base64/URI-safe state compression (`#capsule=...`) + localStorage persistence.
- * Enables shareable, bookmarkable resumption capsules.
+ * LZ-string compressed state (`#capsule=...`) + localStorage persistence.
+ * Enables shareable, bookmarkable resumption capsules with < 2KB URLs.
+ * Backwards compatible with legacy Base64 JSON capsules.
  */
+
+import LZString from "lz-string";
 
 const STORAGE_KEY = "forgestate_capsules";
 
@@ -15,30 +18,6 @@ export interface StoredCapsule {
   compressed: string;
 }
 
-function bytesToBinary(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return binary;
-}
-
-function binaryToBytes(binary: string): Uint8Array {
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-function encodeBase64(bytes: Uint8Array): string {
-  return btoa(bytesToBinary(bytes));
-}
-
-function decodeBase64(value: string): Uint8Array {
-  return binaryToBytes(atob(value));
-}
-
 const MAX_FIELD_LENGTH = 20000;
 
 function truncateField(obj: Record<string, unknown>, field: string): void {
@@ -48,6 +27,13 @@ function truncateField(obj: Record<string, unknown>, field: string): void {
       obj[field] = value.slice(0, MAX_FIELD_LENGTH) + "\n... [truncated for URL safety] ...";
     }
   }
+}
+
+function isLZCompressed(token: string): boolean {
+  // LZString compressed tokens typically contain special chars like ~, and are shorter than raw base64
+  // Legacy base64 tokens are pure alphanumeric + - _ = only
+  // Heuristic: if token contains chars outside base64url alphabet, it's likely LZ-compressed
+  return /[^A-Za-z0-9\-_]/.test(token);
 }
 
 export function compressCapsule(capsule: unknown): string {
@@ -65,17 +51,50 @@ export function compressCapsule(capsule: unknown): string {
     throw new Error("Cannot compress an undefined capsule");
   }
 
-  // TextEncoder/TextDecoder are the modern UTF-8-safe replacement for the
-  // deprecated escape()/unescape() dance, and handle emoji/CJK correctly.
-  const bytes = new TextEncoder().encode(json);
-  const b64 = encodeBase64(bytes);
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  // Compress using LZ-string to base64, then convert to base64url
+  // This is more reliable across environments than compressToEncodedURIComponent
+  const compressedBase64 = LZString.compressToBase64(json);
+  
+  if (!compressedBase64) {
+    throw new Error("LZ compression returned empty result");
+  }
+
+  // Convert standard base64 to base64url (replace +/= with -_ and strip padding)
+  const compressed = compressedBase64
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  return compressed;
 }
 
 export function decompressCapsule(token: string): unknown {
   try {
     if (typeof token !== "string" || token.length === 0) return null;
 
+    // Try LZ decompression first (new format - base64url encoded LZ compressed data)
+    // The new format uses base64url alphabet (A-Za-z0-9-_)
+    if (/^[A-Za-z0-9\-_]+$/.test(token)) {
+      // Convert base64url back to standard base64
+      const base64 = token
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+      
+      // Add padding if needed
+      const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+      
+      try {
+        const decompressed = LZString.decompressFromBase64(padded);
+        if (decompressed) {
+          const parsed: unknown = JSON.parse(decompressed);
+          return parsed ?? null;
+        }
+      } catch {
+        // If LZ decompression fails, fall through to legacy
+      }
+    }
+
+    // Legacy Base64 JSON fallback (for existing judge links)
     const normalized = token
       .replace(/-/g, "+")
       .replace(/_/g, "/")
@@ -85,7 +104,13 @@ export function decompressCapsule(token: string): unknown {
 
     const padded =
       normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    const bytes = decodeBase64(padded);
+    
+    // Decode base64
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
     const json = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     const parsed: unknown = JSON.parse(json);
     return parsed ?? null;
@@ -127,8 +152,18 @@ export function storeCapsulePreview(capsule: {
     ) as StoredCapsule[];
     const updated = [capsule, ...existing].slice(0, 20);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // ignore storage errors
+  } catch (err) {
+    // Ignore storage errors (Safari Private Browsing, quota exceeded, SecurityError, etc.)
+    if (err instanceof Error) {
+      const isStorageError = 
+        err.name === "QuotaExceededError" ||
+        err.name === "SecurityError" ||
+        err.message.includes("quota") ||
+        err.message.includes("private");
+      if (!isStorageError) {
+        console.warn("[ForgeState] Unexpected localStorage error:", err);
+      }
+    }
   }
 }
 
@@ -136,7 +171,18 @@ export function listStoredCapsules(): StoredCapsule[] {
   if (typeof window === "undefined") return [];
   try {
     return JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
-  } catch {
+  } catch (err) {
+    // Ignore storage errors (Safari Private Browsing, quota exceeded, SecurityError, etc.)
+    if (err instanceof Error) {
+      const isStorageError = 
+        err.name === "QuotaExceededError" ||
+        err.name === "SecurityError" ||
+        err.message.includes("quota") ||
+        err.message.includes("private");
+      if (!isStorageError) {
+        console.warn("[ForgeState] Unexpected localStorage error:", err);
+      }
+    }
     return [];
   }
 }
