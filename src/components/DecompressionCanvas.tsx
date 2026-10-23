@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { ForgeStateCapsule, FidelityReceipt } from "@/lib/flowdesk-contracts";
 import { playEarconSequence } from "@/lib/audio-hud";
+import { computeAnchorWordCompression, formatFidelityDisplay } from "@/lib/metrics";
 
 interface DecompressionCanvasProps {
   level: 1 | 2 | 3;
@@ -326,13 +327,13 @@ export function DecompressionCanvas({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="swiss-card p-4">
               <h3 className="text-xs font-bold text-swiss-muted uppercase tracking-wider mb-2">Raw Input</h3>
-              <pre className="text-telemetry-xs overflow-auto font-mono text-swiss-text telemetry max-h-64">
+              <pre className="text-telemetry-xs overflow-x-hidden overflow-y-auto font-mono text-swiss-text telemetry max-h-64 whitespace-pre-wrap break-words">
                 {rawInput}
               </pre>
             </div>
             <div className="swiss-card p-4">
               <h3 className="text-xs font-bold text-swiss-muted uppercase tracking-wider mb-2">Compiled Capsule</h3>
-              <pre className="text-telemetry-xs overflow-auto font-mono text-swiss-text telemetry max-h-64">
+              <pre className="text-telemetry-xs overflow-x-hidden overflow-y-auto font-mono text-swiss-text telemetry max-h-64 whitespace-pre-wrap break-words">
                 {JSON.stringify(
                   {
                     summary: capsule.one_sentence_summary,
@@ -349,38 +350,49 @@ export function DecompressionCanvas({
             </div>
           </div>
 
-          {/* Diff block */}
+          {/* Diff block - uses anchor word compression (not cognitive load reduction) */}
           <div className="swiss-card p-4 mb-6">
             <h3 className="text-xs font-bold text-swiss-muted uppercase tracking-wider mb-2">
               Raw vs. Compiled Diff
             </h3>
-            <pre className="text-telemetry-xs overflow-auto font-mono text-swiss-text telemetry max-h-64 border-l-2 border-amber-500 pl-3 bg-swiss-surface/30">
+            <pre className="text-telemetry-xs overflow-x-hidden overflow-y-auto font-mono text-swiss-text telemetry max-h-64 border-l-2 border-amber-500 pl-3 bg-swiss-surface/30 whitespace-pre-wrap break-words">
               {capsule.raw_vs_compiled_diff ?? "No diff available."}
             </pre>
+            {/* Show anchor word compression explicitly */}
+            <div className="mt-3 text-telemetry-xs text-swiss-muted telemetry flex items-center gap-2">
+              <span className="font-bold text-swiss-text">Anchor Word Compression:</span>
+              <span className="font-mono text-amber-600 dark:text-amber-400">
+                {computeAnchorWordCompression(rawInput, capsule.one_sentence_summary, capsule.two_minute_anchor)}%
+              </span>
+              <span className="text-swiss-muted">(raw words → anchor+summary words)</span>
+            </div>
           </div>
 
-          {/* Fidelity evidence row */}
+          {/* Fidelity evidence row - shows BOTH pre-repair and final scores */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-            {[
-              { label: "Fidelity Score", value: `${receipt?.fidelity_score ?? capsule.fidelity_score}%`, color: "emerald" },
-              { label: "Tokens Extracted", value: Object.values(capsule.extracted_tokens).flat().length, color: "amber" },
-              { label: "Intercepted", value: receipt?.hallucinations_intercepted ?? 0, color: "amber" },
-              { label: "Auto-Repaired", value: receipt?.auto_repairs ? "Yes" : "No", color: receipt?.auto_repairs ? "amber" : "emerald" },
-            ].map((m, i) => (
-              <div
-                key={i}
-                className={`p-3 rounded-instrument border border-swiss-border bg-swiss-surface text-left`}
-              >
-                <div className="text-telemetry-xs text-swiss-muted font-bold uppercase tracking-wider mb-1">
-                  {m.label}
+            {(() => {
+              const fidelity = formatFidelityDisplay(receipt, capsule);
+              return [
+                { label: "Final Fidelity", value: `${receipt?.final_fidelity_score ?? receipt?.fidelity_score ?? capsule.fidelity_score}%`, color: "emerald" as const },
+                { label: "Pre-Repair Score", value: `${receipt?.initial_fidelity_score ?? receipt?.fidelity_score ?? capsule.fidelity_score}%`, color: "amber" as const },
+                { label: "Intercepted", value: receipt?.hallucinations_intercepted ?? 0, color: "amber" as const },
+                { label: "Auto-Repaired", value: receipt?.auto_repairs ? "Yes" : "No", color: receipt?.auto_repairs ? "amber" as const : "emerald" as const },
+              ].map((m, i) => (
+                <div
+                  key={i}
+                  className={`p-3 rounded-instrument border border-swiss-border bg-swiss-surface text-left`}
+                >
+                  <div className="text-telemetry-xs text-swiss-muted font-bold uppercase tracking-wider mb-1">
+                    {m.label}
+                  </div>
+                  <div className={`text-sm font-bold text-swiss-text font-mono ${
+                    m.color === "emerald" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                  }`}>
+                    {m.value}
+                  </div>
                 </div>
-                <div className={`text-sm font-bold text-swiss-text font-mono ${
-                  m.color === "emerald" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
-                }`}>
-                  {m.value}
-                </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">

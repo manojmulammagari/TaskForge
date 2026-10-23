@@ -8,6 +8,7 @@ import {
   Terminal,
 } from "lucide-react";
 import type { RawInput } from "@/lib/flowdesk-contracts";
+import { formatFidelityDisplay } from "@/lib/metrics";
 
 interface JudgeControlBarProps {
   presets: Array<{
@@ -26,6 +27,11 @@ interface JudgeControlBarProps {
   } | null;
   usedFallback: string;
   activePresetId?: string | null;
+  fidelityDisplay?: {
+    header: string;
+    detail: string;
+    showRepairBadge: boolean;
+  } | null;
 }
 
 export function JudgeControlBar({
@@ -34,6 +40,7 @@ export function JudgeControlBar({
   telemetry,
   usedFallback,
   activePresetId,
+  fidelityDisplay,
 }: JudgeControlBarProps) {
   return (
     <div
@@ -90,19 +97,29 @@ export function JudgeControlBar({
                       : "Deterministic Fallback"}
             </span>
             <span className="ml-2 h-4 w-px bg-swiss-border"></span>
-            <span className={`font-bold ${
-              telemetry?.repaired
-                ? "text-amber-600 dark:text-amber-400"
-                : usedFallback === "deterministic" || usedFallback === "deterministic-local"
+            {fidelityDisplay ? (
+              <span className={`font-bold ${
+                fidelityDisplay.showRepairBadge
                   ? "text-amber-600 dark:text-amber-400"
                   : "text-emerald-600 dark:text-emerald-400"
-            }`}>
-              {telemetry?.repaired
-                ? `Fidelity: 100% (${telemetry.repaired} Auto-Repaired)`
-                : usedFallback === "deterministic" || usedFallback === "deterministic-local"
-                  ? "Fidelity: N/A (Heuristic)"
-                  : `Fidelity: ${telemetry?.fidelity ?? 100}%`}
-            </span>
+              }`}>
+                {fidelityDisplay.header}
+              </span>
+            ) : (
+              <span className={`font-bold ${
+                telemetry?.repaired
+                  ? "text-amber-600 dark:text-amber-400"
+                  : usedFallback === "deterministic" || usedFallback === "deterministic-local"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-emerald-600 dark:text-emerald-400"
+              }`}>
+                {telemetry?.repaired
+                  ? `Fidelity: 100% (${telemetry.repaired} Auto-Repaired)`
+                  : usedFallback === "deterministic" || usedFallback === "deterministic-local"
+                    ? "Fidelity: N/A (Heuristic)"
+                    : `Fidelity: ${telemetry?.fidelity ?? 100}%`}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -60,6 +60,7 @@ import {
 } from "@/lib/url-capsule";
 import { showToast } from "@/lib/toast";
 import { PRESETS } from "@/lib/presets";
+import { computeCognitiveLoadReduction, formatFidelityDisplay } from "@/lib/metrics";
 
 const ANNOUNCER_ID = "status-announcer";
 const THEME_STORAGE_KEY = "forgestate:theme";
@@ -531,7 +532,7 @@ export default function ForgeStatePage() {
         });
       }
     },
-    [capsule, receipt], // speakAnnouncerRef is stable
+    [capsule, receipt],
   );
 
   const handleOpenReceipt = useCallback(() => setModalOpen(true), []);
@@ -558,7 +559,7 @@ export default function ForgeStatePage() {
     };
   }, [capsule, receipt]);
 
-  // Enhanced metrics for the Before/After comparison
+  // Enhanced metrics for the Before/After comparison - USE SHARED COMPUTATION
   const enhancedMetrics = useMemo(() => {
     if (!capsule || !receipt) return null;
     const metrics = (capsule as any).metrics as DecompressionMetrics | undefined;
@@ -567,9 +568,19 @@ export default function ForgeStatePage() {
       actionableNodes: metrics?.decompressedActionableNodes ?? 0,
       timeSavedMin: metrics?.estimatedResumptionTimeSavedMin ?? 0,
       interceptionRate: metrics?.hallucinationInterceptionRate ?? 100,
-      noiseReduction: metrics?.cognitiveLoadReductionPct ?? 0,
+      noiseReduction: computeCognitiveLoadReduction(
+        rawInput,
+        capsule.one_sentence_summary,
+        capsule.two_minute_anchor
+      ),
       compileLatencyMs: metrics?.compileLatencyMs ?? 0,
     };
+  }, [capsule, receipt, rawInput]);
+
+  // Fidelity display for JudgeControlBar - USE SHARED FORMATTING
+  const fidelityDisplay = useMemo(() => {
+    if (!capsule || !receipt) return null;
+    return formatFidelityDisplay(receipt, capsule);
   }, [capsule, receipt]);
 
   const dismissWalkthrough = useCallback(() => {
@@ -722,7 +733,23 @@ export default function ForgeStatePage() {
         telemetry={telemetry}
         usedFallback={usedFallback}
         activePresetId={activePresetId}
+        fidelityDisplay={fidelityDisplay}
       />
+
+      {/* Named User & Barrier Context Banner */}
+      <div className="px-4 py-2 border-b border-swiss-border/40 bg-amber-400/5" role="status" aria-live="polite">
+        <div className="max-w-7xl mx-auto flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-instrument bg-amber-400/20 border border-amber-400/30 text-amber-800 dark:text-amber-200 font-mono text-[10px] shrink-0">
+            <span className="font-bold">USER:</span> Alex (Neurodivergent Developer)
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-instrument bg-amber-400/20 border border-amber-400/30 text-amber-800 dark:text-amber-200 font-mono text-[10px] shrink-0">
+            <span className="font-bold">BARRIER:</span> Resumption Paralysis & Cognitive Overload
+          </div>
+          <span className="ml-auto text-telemetry-xs text-swiss-muted">
+            ForgeState eliminates the 23-min resumption tax → deterministic handoff in &lt;10 sec
+          </span>
+        </div>
+      </div>
 
       <div className="flex-1 px-4 py-6 lg:px-8 lg:py-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left column — capture (always visible, narrow on desktop) */}
@@ -851,3 +878,8 @@ export default function ForgeStatePage() {
     </div>
   );
 }
+
+
+
+
+
