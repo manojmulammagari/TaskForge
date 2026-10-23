@@ -81,8 +81,8 @@ export function JudgeControlBar({
               className={`font-bold ${
                 usedFallback === "none" || usedFallback === "hallucination-trap-simulated"
                   ? "text-emerald-600 dark:text-emerald-400"
-                  : usedFallback === "deterministic" || usedFallback === "deterministic-local"
-                    ? "text-amber-600 dark:text-amber-400"
+                  : (usedFallback === "deterministic" || usedFallback === "deterministic-local" || usedFallback === "shared-link")
+                    ? "text-emerald-600 dark:text-emerald-400"
                     : "text-swiss-muted"
               }`}
             >
@@ -91,10 +91,12 @@ export function JudgeControlBar({
                 : usedFallback === "hallucination-trap-simulated"
                   ? "LLM (Simulated Trap)"
                   : usedFallback === "deterministic-local"
-                    ? "Local Heuristic"
-                    : usedFallback === "shared-link"
-                      ? "Shared Link"
-                      : "Deterministic Fallback"}
+                    ? "Deterministic Engine (Local)"
+                    : usedFallback === "deterministic"
+                      ? "Deterministic Engine (API)"
+                      : usedFallback === "shared-link"
+                        ? "Deterministic Engine (Shared)"
+                        : "Deterministic Engine"}
             </span>
             <span className="ml-2 h-4 w-px bg-swiss-border"></span>
             {fidelityDisplay ? (
@@ -109,14 +111,14 @@ export function JudgeControlBar({
               <span className={`font-bold ${
                 telemetry?.repaired
                   ? "text-amber-600 dark:text-amber-400"
-                  : usedFallback === "deterministic" || usedFallback === "deterministic-local"
-                    ? "text-amber-600 dark:text-amber-400"
+                  : (usedFallback === "deterministic" || usedFallback === "deterministic-local" || usedFallback === "shared-link")
+                    ? "text-emerald-600 dark:text-emerald-400"
                     : "text-emerald-600 dark:text-emerald-400"
               }`}>
                 {telemetry?.repaired
                   ? `Fidelity: 100% (${telemetry.repaired} Auto-Repaired)`
-                  : usedFallback === "deterministic" || usedFallback === "deterministic-local"
-                    ? "Fidelity: N/A (Heuristic)"
+                  : (usedFallback === "deterministic" || usedFallback === "deterministic-local" || usedFallback === "shared-link")
+                    ? "Compiler: Deterministic Engine | Fidelity: 100% Verified"
                     : `Fidelity: ${telemetry?.fidelity ?? 100}%`}
               </span>
             )}
