@@ -208,9 +208,11 @@ export function ChaosCapturePane({
         <h4 className="text-telemetry-xs font-bold text-swiss-muted mb-2">
           Judge Demo Presets
         </h4>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-2">
           {presets.map((p) => {
             const isSelected = rawInput.trim() === p.input.text.trim();
+            // Fix preset 4 title to be more readable
+            const displayTitle = p.id === "4" ? "Hallucination Trap (Stress Test)" : p.title;
             return (
               <button
                 key={p.id}
@@ -224,14 +226,14 @@ export function ChaosCapturePane({
                 aria-label={`Load preset ${p.id}: ${p.title}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-swiss-text truncate break-words hyphens-auto">
-                    {p.title}
+                  <span className="text-sm font-bold text-swiss-text whitespace-normal leading-snug break-words">
+                    {displayTitle}
                   </span>
                   <span className="text-[10px] font-mono text-amber-600 dark:text-amber-300 shrink-0">
                     [{p.id}]
                   </span>
                 </div>
-                <span className="text-telemetry-xs text-swiss-muted truncate">{p.subtitle}</span>
+                <span className="text-telemetry-xs text-swiss-muted whitespace-normal leading-snug">{p.subtitle}</span>
               </button>
             );
           })}
