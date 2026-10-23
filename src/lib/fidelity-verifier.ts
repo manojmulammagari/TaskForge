@@ -13,112 +13,16 @@ import type {
   ForgeStateCapsule,
   FidelityReceipt,
 } from "./flowdesk-contracts";
-import { ExtractedTokensSchema, normalizeUrl } from "./flowdesk-contracts";
+import { ExtractedTokensSchema } from "./flowdesk-contracts";
 import { ensureUuid, generateUuidV4 } from "./uuid";
+import { 
+  extractTokensShared, 
+  type ExtractedTokens as SharedExtractedTokens,
+  FILE_PATH_RE
+} from "./token-extraction";
 
-const URL_RE =
-  /https?:\/\/[^\s<>"'()]+|www\.[^\s<>"'()]+|(?<![\w@])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|org|net|io|dev|ai|app|co|uk|de|fr|jp|us|ca|au|nz|xyz|info|biz|me|tv|gg|so|sh|fm|site|online|tech|cloud|systems|tools)\b(?::\d{1,5})?(?:\/[^\s<>"'()]*)?/gi;
-const FILE_PATH_RE =
-  /\b(?:[\w\-]+\/)+[\w\-]+\.\w{2,}(?:\?[^\s<>"'()]+)?|\b[a-zA-Z]:\\[\w\-.\\]+\.[\w]{2,}/g;
-const LINE_REF_RE = /\b(?:line|ln|l)\s*#?:?\s*(\d{1,5})\b/gi;
-const DATE_RE =
-  /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})?|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2}\b/gi;
-const PERSON_RE = /(?:^|\s)@([A-Za-z][A-Za-z0-9_.-]{2,30})|\b(?:by|with|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})\b/g;
-const METRIC_RE = /\b\d+(?:\.\d+)?\s?(?:ms|s|sec|second|seconds|min|minute|minutes|hr|hour|hours|kb|mb|gb|tb|%|percent|req\/s|rps)\b/gi;
-
-// ---------------------------------------------------------------------------
-// Pure extraction
-// ---------------------------------------------------------------------------
-
-/**
- * Normalize a detected link into the contract's URL shape. Bare `www.` links
- * become absolute `https://` URLs; trailing sentence punctuation is removed.
- */
-function normalizeExtractedUrl(raw: string): string {
-  const withoutTrailingPunctuation = raw.replace(/[.,;:!?]+$/g, "");
-  return normalizeUrl(withoutTrailingPunctuation);
-}
-
-/**
- * Normalize extracted date strings to ISO-8601 (YYYY-MM-DD) format.
- * Defaults to current year (2026) when year is omitted.
- */
-function normalizeDateToISO(raw: string): string {
-  const trimmed = raw.trim();
-  
-  // Already ISO format
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return trimmed;
-  }
-  
-  // MM/DD/YYYY or MM/DD/YY
-  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (slashMatch) {
-    const month = slashMatch[1].padStart(2, "0");
-    const day = slashMatch[2].padStart(2, "0");
-    let year = slashMatch[3];
-    if (year.length === 2) year = "20" + year;
-    return `${year}-${month}-${day}`;
-  }
-  
-  // Month name formats: "October 24th", "October 24th, 2026", "Nov 3rd", etc.
-  const monthNames: Record<string, string> = {
-    jan: "01", january: "01",
-    feb: "02", february: "02",
-    mar: "03", march: "03",
-    apr: "04", april: "04",
-    may: "05",
-    jun: "06", june: "06",
-    jul: "07", july: "07",
-    aug: "08", august: "08",
-    sep: "09", sept: "09", september: "09",
-    oct: "10", october: "10",
-    nov: "11", november: "11",
-    dec: "12", december: "12",
-  };
-  
-  const monthMatch = trimmed.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?(?:,\s*(\d{4}))?$/i);
-  if (monthMatch) {
-    const month = monthNames[monthMatch[1].toLowerCase()];
-    const day = monthMatch[2].padStart(2, "0");
-    const year = monthMatch[3] || "2026"; // Default to current year
-    return `${year}-${month}-${day}`;
-  }
-  
-  // Fallback: return original if we can't parse
-  return trimmed;
-}
-
-export function extractTokens(text: string): ExtractedTokens {
-  const source = typeof text === "string" ? text : "";
-  const urls = Array.from(source.matchAll(URL_RE)).map((m) =>
-    normalizeExtractedUrl(m[0]),
-  );
-  const filePaths = Array.from(source.matchAll(FILE_PATH_RE)).map((m) => m[0]);
-  const lineNumbers = Array.from(source.matchAll(LINE_REF_RE)).map(
-    (m) => Number(m[1]),
-  );
-  const datesDeadlines = Array.from(source.matchAll(DATE_RE))
-    .map((m) => normalizeDateToISO(m[0]));
-  const peopleMentions = Array.from(source.matchAll(PERSON_RE))
-    .flatMap((m) => m.slice(1).filter(Boolean))
-    .map((mention) => mention.replace(/[.,;:!?]+$/g, ""))
-    .filter(Boolean);
-  const metrics = Array.from(source.matchAll(METRIC_RE)).map((m) => m[0]);
-
-  return ExtractedTokensSchema.parse({
-    file_paths: uniq(filePaths),
-    line_numbers: uniq(lineNumbers),
-    urls: uniq(urls),
-    dates_deadlines: uniq(datesDeadlines),
-    people_mentions: uniq(peopleMentions),
-    metrics: uniq(metrics),
-  });
-}
-
-function uniq<T>(arr: T[]): T[] {
-  return Array.from(new Set(arr));
-}
+// Re-export for compatibility
+export { extractTokensShared as extractTokens };
 
 // ---------------------------------------------------------------------------
 // Token presence check in compiled output
@@ -227,7 +131,7 @@ export function verifyFidelity(
   capsule: ForgeStateCapsule,
 ): VerifyResult {
   const raw = typeof rawInput === "string" ? rawInput : "";
-  const extracted = extractTokens(raw);
+  const extracted = extractTokensShared(raw);
   const capsuleId = ensureUuid(capsule.capsule_id);
 
   const compiledText = [

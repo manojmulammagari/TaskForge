@@ -25,7 +25,7 @@ import {
   RawInputSchema,
   validateCapsule,
 } from "./flowdesk-contracts";
-import { extractTokens } from "./fidelity-verifier";
+import { extractTokensShared, type ExtractedTokens } from "./token-extraction";
 import { generateUuidV4 } from "./uuid";
 
 // Maximum characters to process before windowing around error hotspots
@@ -261,10 +261,10 @@ export function compileDeterministic(raw: RawInput): ForgeStateCapsule {
   // Extract enhanced entities from various formats
   const gitEntities = extractGitDiffEntities(text);
   const stackEntities = extractStackTraceEntities(text);
-  const extracted = extractTokens(text);
+  const extracted = extractTokensShared(text);
 
   // Merge extracted tokens with git/stack entities
-  const mergedTokens = {
+  const mergedTokens: ExtractedTokens = {
     file_paths: [...new Set([...extracted.file_paths, ...gitEntities.filePaths, ...stackEntities.filePaths])],
     line_numbers: [...new Set([...extracted.line_numbers, ...gitEntities.addedLines.map(l => l.line), ...gitEntities.removedLines.map(l => l.line), ...stackEntities.lineNumbers])],
     urls: extracted.urls,
@@ -276,15 +276,46 @@ export function compileDeterministic(raw: RawInput): ForgeStateCapsule {
   const lines = text.split(/\r?\n/).filter(Boolean);
 
   // Heuristic one-sentence summary: first meaningful sentence, or first line
-  const oneSentenceSummary =
+  // Strip common filler greetings
+  let oneSentenceSummary =
     text.split(/[.!?]\s+/).find((s) => s.trim().length > 5)?.trim() ??
     lines[0] ??
     "Untitled task";
+  
+  // Remove common filler prefixes
+  oneSentenceSummary = oneSentenceSummary
+    .replace(/^(hey team|urgent|asap|handoff|handover|context dump|brain dump)[,:]\s*/i, "")
+    .replace(/^(for|regarding|re|fw|fwd)[,:]\s*/i, "")
+    .trim();
+  
+  // Cap at 18 words
+  const summaryWords = oneSentenceSummary.split(/\s+/);
+  if (summaryWords.length > 18) {
+    oneSentenceSummary = summaryWords.slice(0, 18).join(" ") + "…";
+  }
 
-  // Two-minute anchor: first imperative-looking sentence, else a default
-  const twoMinuteAnchor =
-    lines.find((l) => /^(check|fix|run|open|read|update|delete|create|verify|debug|investigate|reproduce)\b/i.test(l.trim())) ??
-    `Read the latest error and reproduce the first failing step in ${oneSentenceSummary}`;
+  // Smart two-minute anchor: concise, high-signal, ≤14 words physical micro-step
+  const firstFile = mergedTokens.file_paths[0];
+  const firstLine = mergedTokens.line_numbers[0];
+  const firstMetric = mergedTokens.metrics[0];
+  
+  let twoMinuteAnchor: string;
+  if (firstFile && firstLine) {
+    twoMinuteAnchor = `Open ${firstFile} at line ${firstLine} and inspect the failing execution path.`;
+  } else if (firstFile && firstMetric) {
+    twoMinuteAnchor = `Open ${firstFile} and verify ${firstMetric} behavior locally.`;
+  } else if (firstFile) {
+    twoMinuteAnchor = `Open ${firstFile} and trace the active handoff blocker.`;
+  } else {
+    // Fallback: first actionable clause, trimmed to ≤12 words
+    const actionableClause = lines.find((l) => 
+      /^(check|fix|run|open|read|update|delete|create|verify|debug|investigate|reproduce|add|remove|increase|decrease|implement|refactor|test|deploy)\b/i.test(l.trim())
+    ) ?? oneSentenceSummary;
+    const anchorWords = actionableClause.trim().split(/\s+/);
+    twoMinuteAnchor = anchorWords.length > 12 
+      ? anchorWords.slice(0, 12).join(" ") + "…"
+      : actionableClause.trim();
+  }
 
   const mentalState = inferMentalState(text);
 

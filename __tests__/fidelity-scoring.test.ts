@@ -42,14 +42,16 @@ describe("verifyFidelity scoring", () => {
     const { capsule: repaired, receipt, repaired: wasRepaired } =
       verifyFidelity(raw, capsule);
 
-    expect(receipt.tokens_extracted).toBe(3);
-    expect(receipt.tokens_survived).toBe(2);
+    // New extraction also catches "214" as potential HTTP status code metric
+    // file_paths: 1 (checkout.tsx) + line_numbers: 2 (214, 21) + metrics: 1 (214 as HTTP code) = 4
+    expect(receipt.tokens_extracted).toBe(4);
+    expect(receipt.tokens_survived).toBe(3);
     expect(receipt.tokens_lost).toBe(1);
     expect(receipt.fidelity_score).toBe(
       Math.round((receipt.tokens_survived / receipt.tokens_extracted) * 100),
     );
-    expect(receipt.fidelity_score).toBe(67);
-    expect(receipt.initial_fidelity_score).toBe(67);
+    expect(receipt.fidelity_score).toBe(75);
+    expect(receipt.initial_fidelity_score).toBe(75);
     expect(receipt.final_fidelity_score).toBe(100);
     expect(receipt.repaired).toBe(true);
     expect(wasRepaired).toBe(true);
