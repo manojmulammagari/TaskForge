@@ -151,7 +151,7 @@ export function DecompressionCanvas({
           aria-label="Level 1 Calm decompression view"
         >
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-mono font-bold mb-4">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-amber-400/30 bg-amber-400/10 text-amber-800 dark:text-amber-200 text-[11px] font-mono font-bold mb-4">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               Level 1 · Calm
             </div>
@@ -224,8 +224,8 @@ export function DecompressionCanvas({
 
           <div className="bento-grid">
             {/* Column 1: Current Mental State */}
-            <div className="swiss-card p-4 border-2 border-amber-500/30 bg-amber-500/5">
-              <h3 className="text-sm font-bold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1">
+            <div className="swiss-card p-4 border-2 border-amber-400/30 bg-amber-400/5">
+              <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-1">
                 <AlertTriangle className="w-4 h-4" fill="currentColor" />
                 Current Mental State
               </h3>
@@ -260,8 +260,8 @@ export function DecompressionCanvas({
             </div>
 
             {/* Column 3: Ordered Micro-Steps */}
-            <div className="swiss-card p-4 border-2 border-emerald-500/30 bg-emerald-500/5">
-              <h3 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-1">
+            <div className="swiss-card p-4 border-2 border-emerald-400/30 bg-emerald-400/5">
+              <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-3 flex items-center gap-1">
                 <Clock className="w-4 h-4" fill="currentColor" />
                 Ordered Micro-Steps
               </h3>
@@ -279,14 +279,14 @@ export function DecompressionCanvas({
                           ? `Mark step incomplete: ${s.text}`
                           : `Mark step complete: ${s.text}`
                       }
-                      className={`flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center text-swiss-muted transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                      className={`flex-shrink-0 w-6 h-6 rounded border flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-amber-400 min-h-[28px] min-w-[28px] ${
                         isCompleted(s.id)
-                          ? "border-emerald-500 bg-emerald-500 text-emerald-700 dark:text-emerald-300"
-                          : "border-swiss-border hover:border-amber-500/50"
+                          ? "border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500 dark:text-black"
+                          : "border-swiss-border bg-swiss-surface hover:border-amber-400/50"
                       }`}
                     >
                       {isCompleted(s.id) ? (
-                        <Check className="w-3 h-3" />
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
                       ) : null}
                     </button>
                     <div className="leading-relaxed">

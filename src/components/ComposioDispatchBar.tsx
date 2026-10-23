@@ -146,7 +146,7 @@ export function ComposioDispatchBar({
                   ? "border-swiss-border/40 text-swiss-muted/40"
                   : dispatched?.target === t.id
                     ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    : "border-swiss-border bg-swiss-surface text-swiss-text hover:border-amber-500/50 hover:bg-amber-500/10"
+                    : "border-swiss-border bg-swiss-surface text-swiss-text hover:border-amber-400/50 hover:bg-amber-400/10"
               }`}
               title={t.schema}
             >
@@ -201,7 +201,7 @@ export function ComposioDispatchBar({
             </div>
             <div className="flex justify-between">
               <span>Status:</span>
-              <span className={`font-mono ${dispatched.success ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+              <span className={`font-mono ${dispatched.success ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-300"}`}>
                 {dispatched.success ? "RECEIPT ISSUED" : "FAILED"}
               </span>
             </div>

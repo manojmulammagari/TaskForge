@@ -2,7 +2,7 @@
  *
  * Calm Light Mode: warm alabaster #FAF8F5
  * Focus Dark Mode: deep obsidian #0B0D11
- * Semantic badges: amber #F59E0B / emerald #10B981
+ * Semantic badges: amber #FBBF24 (WCAG AAA 11.5:1 on #0B0D11) / emerald #10B981
  * Monospace telemetry readouts. Zero generic AI purple gradients.
  * WCAG AAA contrast, dyslexia & bionic reading tokens.
  */
@@ -27,7 +27,7 @@
   }
 
   .dark {
-    /* Focus Dark Mode */
+    /* Focus Dark Mode — WCAG AAA compliant colors */
     --swiss-bg: #0B0D11;
     --swiss-surface: #12141A;
     --swiss-border: #2A2F3A;
@@ -74,12 +74,13 @@
 
   #skip-to-content:focus {
     transform: translatey(0);
-    outline: 3px solid #F59E0B;
+    outline: 3px solid #FBBF24;
     outline-offset: 2px;
   }
 
-  /* ARIA live announcer — visible but off-screen for screen readers */
-  [aria-live="polite"], [aria-live="assertive"] {
+  /* Off-screen live announcer — dedicated to screen-reader updates only */
+  #status-announcer,
+  .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -91,9 +92,9 @@
     border-width: 0;
   }
 
-  /* Focus rings — WCAG AAA visible focus */
+  /* Focus rings — WCAG AAA visible focus (amber-400 #FBBF24 = 11.5:1 on #0B0D11) */
   *:focus-visible {
-    outline: 3px solid #F59E0B;
+    outline: 3px solid #FBBF24;
     outline-offset: 2px;
   }
 
@@ -103,13 +104,13 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 3px solid #F59E0B;
+    outline: 3px solid #FBBF24;
     outline-offset: 2px;
   }
 
-  /* Selection color — Swiss amber */
+  /* Selection color — Swiss amber (WCAG AAA compliant) */
   ::selection {
-    background: #F59E0B;
+    background: #FBBF24;
     color: #0B0D11;
   }
 
@@ -165,6 +166,32 @@
     --swiss-text: #FFFFFF;
     --swiss-muted: #AAAAAA;
     --swiss-ink: #FFFFFF;
+  }
+
+  /* Form controls explicit contrast handling */
+  input, textarea, select {
+    background-color: var(--swiss-surface);
+    color: var(--swiss-text);
+    border-color: var(--swiss-border);
+  }
+  .dark input, .dark textarea, .dark select {
+    background-color: var(--swiss-surface);
+    color: var(--swiss-text);
+    border-color: var(--swiss-border);
+  }
+  .dark.contrast-aaa input,
+  .dark.contrast-aaa textarea,
+  .dark.contrast-aaa select {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    border: 2px solid #FFFFFF !important;
+  }
+  .contrast-aaa input,
+  .contrast-aaa textarea,
+  .contrast-aaa select {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
   }
 
   /* Prefers reduced motion — disable animations/spins/pulses for vestibular safety */
@@ -239,17 +266,17 @@
   }
 
   /* Focus Dark: the default obsidian button would disappear into the page
-   * background, so primary actions switch to amber-on-obsidian. */
+   * background, so primary actions switch to amber-400-on-obsidian (WCAG AAA 11.5:1). */
   .dark .btn-primary {
-    background: #F59E0B;
+    background: #FBBF24;
     color: #0B0D11;
-    border-color: #F59E0B;
+    border-color: #FBBF24;
   }
 
   .dark .btn-primary:hover:not(:disabled) {
-    background: #FBBF24;
+    background: #FCD34D;
     color: #0B0D11;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35);
   }
 
   /* AAA dark mode: white/amber on pure obsidian exceeds AAA contrast while
@@ -278,10 +305,10 @@
   /* Active/pressed micro-interaction for preset + control buttons */
   .cognitive-control:active {
     transform: scale(0.96);
-    background: rgba(245, 158, 11, 0.25);
+    background: rgba(251, 191, 36, 0.25);
   }
   .dark .cognitive-control:active {
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(251, 191, 36, 0.15);
   }
 
   /* Toast notification container */

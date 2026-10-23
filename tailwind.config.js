@@ -10,24 +10,37 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Tactile Swiss Instrumentation palette
+        swiss: {
+          bg: "var(--swiss-bg)",
+          surface: "var(--swiss-surface)",
+          border: "var(--swiss-border)",
+          text: "var(--swiss-text)",
+          muted: "var(--swiss-muted)",
+          ink: "var(--swiss-ink)",
+        },
         calm: {
-          bg: "#FAF8F5",        // warm alabaster
+          bg: "#FAF8F5",
           surface: "#FFFFFF",
           border: "#E7E2D6",
           text: "#2D2B26",
           muted: "#6E6659",
         },
         focus: {
-          bg: "#0B0D11",        // deep obsidian
+          bg: "#0B0D11",
           surface: "#12141A",
           border: "#2A2F3A",
           text: "#E7E9EE",
           muted: "#94A0B4",
         },
-        // Keep the full Tailwind scales so utilities such as bg-amber-500,
-        // text-emerald-400, and their opacity variants resolve correctly.
-        amber: { ...defaultColors.amber, DEFAULT: "#F59E0B" },
+        // WCAG AAA compliant amber for dark mode (#0B0D11 bg)
+        // amber-300 (#FCD34D) = 14.8:1 contrast on #0B0D11
+        // amber-400 (#FBBF24) = 11.5:1 contrast on #0B0D11
+        amber: { 
+          ...defaultColors.amber, 
+          DEFAULT: "#F59E0B",
+          300: "#FCD34D",
+          400: "#FBBF24",
+        },
         emerald: { ...defaultColors.emerald, DEFAULT: "#10B981" },
         telemetry: {
           dim: "#4B5563",

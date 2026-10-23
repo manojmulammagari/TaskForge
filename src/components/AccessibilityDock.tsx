@@ -49,13 +49,13 @@ export function AccessibilityDock({
   const activeLevelClasses =
     theme === "dark"
       ? highContrast
-        ? "bg-black text-white border-2 border-amber-500 shadow"
-        : "bg-amber-500 text-[#0B0D11] border-2 border-amber-500 shadow"
+        ? "bg-black text-white border-2 border-amber-400 shadow"
+        : "bg-amber-400 text-[#0B0D11] border-2 border-amber-400 shadow"
       : "bg-white text-zinc-900 border-2 border-zinc-900 shadow";
 
   return (
     <aside
-      className="sticky top-24 z-20 swiss-card p-4"
+      className="relative z-10 w-full swiss-card p-4"
       aria-label="Accessibility & cognitive controls"
     >
       <div className="flex items-center justify-between mb-3">
@@ -124,8 +124,8 @@ export function AccessibilityDock({
           onClick={() => setHighContrast(!highContrast)}
           className={`w-full flex items-center justify-between py-2 px-2 rounded-instrument border text-sm text-left transition-colors ${
             highContrast
-              ? "bg-amber-500 text-black border-amber-500"
-              : "bg-swiss-surface text-swiss-text border-swiss-border hover:bg-amber-500/20"
+              ? "bg-amber-400 text-black border-amber-400"
+              : "bg-swiss-surface text-swiss-text border-swiss-border hover:bg-amber-400/20"
           }`}
           aria-pressed={highContrast}
           title="WCAG AAA high-contrast mode"
@@ -144,8 +144,8 @@ export function AccessibilityDock({
           onClick={() => setBionic(!bionic)}
           className={`w-full flex items-center justify-between py-2 px-2 rounded-instrument border text-sm text-left transition-colors ${
             bionic
-              ? "bg-amber-500 text-black border-amber-500"
-              : "bg-swiss-surface text-swiss-text border-swiss-border hover:bg-amber-500/20"
+              ? "bg-amber-400 text-black border-amber-400"
+              : "bg-swiss-surface text-swiss-text border-swiss-border hover:bg-amber-400/20"
           }`}
           aria-pressed={bionic}
           title="Bionic reading (bold word stems)"
