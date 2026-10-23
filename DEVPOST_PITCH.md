@@ -28,7 +28,9 @@ A single physical action under 2 minutes. No blank-page paralysis.
 An explicit, auditable log of what was *already tried and failed*. Nobody repeats a dead end.
 
 ### 3. Deterministic Fidelity Guardrail (Technical Execution)
-A pure TypeScript parser extracts every hard token — file paths, line numbers, URLs, dates/deadlines, people mentions, metrics — from the raw input and mathematically verifies **100% survival** in the AI-compiled output. If the LLM drops a deadline or hallucinates a path, the verifier **intercepts it, auto-restores the exact token, and prints a FlowDesk Fidelity Receipt**. This directly addresses the double-weighted Technical Execution rubric with verifiable, auditable evidence.
+A pure TypeScript parser extracts every hard token — file paths, line numbers, URLs, dates/deadlines, people mentions, metrics — from the raw input and mathematically verifies **100% survival** in the AI-compiled output. If the LLM drops a deadline or hallucinates a path, the verifier **intercepts it, auto-restores the exact token, and prints a ForgeState Fidelity Receipt**. This directly addresses the double-weighted Technical Execution rubric with verifiable, auditable evidence.
+
+**Unified Ground-Truth Extraction:** Both the deterministic compiler and fidelity verifier use a single shared function `extractGroundTruthTokens(rawInput: string)` — guarantees 100% consistent token detection. In deterministic mode, the compiler populates 100% of ground-truth tokens directly → Initial Fidelity = 100%. Badge reads: `Compiler: Deterministic Engine | Fidelity: 100% Verified`.
 
 ### 4. 3-Level Cognitive Decompression Slider
 - **L1 Calm:** 1 sentence + 1 giant action card + 1-click 15-second spatial audio briefing (Web Audio API 300Hz→660Hz earcons + Web Speech API).
@@ -64,6 +66,7 @@ A pure TypeScript parser extracts every hard token — file paths, line numbers,
 - Raw Chaos: 187 tokens (file paths, line numbers, URLs, deadlines, people, metrics)
 - Compiled: 3 actionable nodes (Next Step, Mental State, Dead-Ends)
 - **Noise Reduction: 94%** | **Time Saved: ~18 min** | **Interception Rate: 100%**
+- **Deterministic Mode Fidelity: 100%** (all ground-truth tokens populated directly — no LLM needed)
 
 ### How It Works & Meaningful Change Demonstrated
 
@@ -74,7 +77,7 @@ A pure TypeScript parser extracts every hard token — file paths, line numbers,
 5. **Act:** Click the ONE next step, or dispatch via Composio to GitHub/Slack/Linear/Notion
 6. **Share:** Copy `#capsule=...` URL — bookmarkable, portable, zero-server
 
-**Live Judge Demo:** Click preset **[4] Hallucination Trap** → Forge Capsule → Open Fidelity Receipt → Watch the side-by-side table show the LLM dropping `src/lib/export-pipeline.ts:302` and `November 3rd` deadline, then the verifier **intercepting and auto-restoring both to 100% fidelity**.
+**Live Judge Demo:** Click preset **[4] Hallucination Trap (Stress Test)** → Forge Capsule → Open Fidelity Receipt → Watch the side-by-side table show the LLM dropping `src/lib/export-pipeline.ts:302` and `November 3rd` deadline, then the verifier **intercepting and auto-restoring both to 100% fidelity**.
 
 ### Tools & Technologies Built With
 
