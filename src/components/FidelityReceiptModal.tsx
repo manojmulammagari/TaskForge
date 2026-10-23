@@ -135,7 +135,6 @@ export function FidelityReceiptModal({
       capsule.one_sentence_summary,
       capsule.two_minute_anchor,
       capsule.mental_state,
-      capsule.raw_vs_compiled_diff ?? "",
       ...capsule.micro_steps.map((s) => s.text),
       ...capsule.dead_ends.map((d) => d.attempt + " " + d.error),
     ].join(" ");
@@ -234,6 +233,11 @@ export function FidelityReceiptModal({
             <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20">
               Deterministic Verification
             </span>
+            {receipt?.deterministic_fallback_used && (
+              <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-amber-800 dark:text-amber-200 bg-amber-200/50 border border-amber-500/30">
+                Heuristic Extraction (Deterministic Fallback) — LLM Verification Inactive
+              </span>
+            )}
           </h2>
           <button onClick={onClose} className="btn-ghost p-1.5" aria-label="Close receipt">
             <X className="w-5 h-5" />
@@ -308,7 +312,7 @@ export function FidelityReceiptModal({
                   type="checkbox"
                   checked={showOnlyIssues}
                   onChange={(e) => setShowOnlyIssues(e.target.checked)}
-                  className="rounded border-swiss-border text-amber-500 focus:ring-amber-500"
+                  className="rounded border-swiss-border text-amber-400 focus:ring-amber-400"
                 />
                 Show only intercepted/missing
               </label>
@@ -373,7 +377,7 @@ export function FidelityReceiptModal({
 
           {/* Intercepted hallucinations detail */}
           {(receipt?.hallucinations_intercepted ?? 0) > 0 && (
-            <div className="border border-amber-500/30 rounded-instrument p-4 bg-amber-500/10">
+            <div className="border border-amber-400/30 rounded-instrument p-4 bg-amber-400/10">
               <h3 className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 Intercepted Hallucinations & Auto-Repair
@@ -383,7 +387,7 @@ export function FidelityReceiptModal({
               </p>
               <ul className="space-y-1 text-telemetry-xs font-mono text-swiss-text telemetry">
                 {(capsule?.intercepted_hallucinations ?? []).map((h, i) => (
-                  <li key={i} className="flex items-start gap-2 p-2 rounded bg-swiss-surface/50 border border-amber-500/20">
+                  <li key={i} className="flex items-start gap-2 p-2 rounded bg-swiss-surface/50 border border-amber-400/20">
                     <span className="text-amber-600 dark:text-amber-400 font-bold">↻</span>
                     <span className="line-through text-swiss-muted/60 flex-1">{h}</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold">[restored]</span>
