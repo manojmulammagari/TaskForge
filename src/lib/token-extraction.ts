@@ -241,6 +241,15 @@ export interface ExtractedTokens {
   metrics: string[];
 }
 
+/**
+ * Ground-truth token extraction - SINGLE SOURCE OF TRUTH
+ * Used by BOTH deterministic-compiler.ts and fidelity-verifier.ts
+ * Guarantees 100% consistent token detection across both modules
+ */
+export function extractGroundTruthTokens(text: string): ExtractedTokens {
+  return extractTokensShared(text);
+}
+
 export function extractTokensShared(text: string): ExtractedTokens {
   const source = typeof text === "string" ? text : "";
   
