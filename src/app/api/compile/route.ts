@@ -3,6 +3,7 @@ import { validateRawInput, validateCapsule } from "@/lib/flowdesk-contracts";
 import { extractTokens, verifyFidelity } from "@/lib/fidelity-verifier";
 import { compileRawInput } from "@/lib/deterministic-compiler";
 import { generateUuidV4 } from "@/lib/uuid";
+import { computeAllMetrics, formatFidelityDisplay } from "@/lib/metrics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -195,10 +196,23 @@ async function tryGemini(rawText: string): Promise<string | null> {
 
 function parseLLMJson(text: string): Record<string, unknown> | null {
   try {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
+    // Strip markdown code fences if LLM wraps JSON in ```json ... ```
+    let cleaned = text.trim();
+    if (cleaned.startsWith("```")) {
+      const fenceEnd = cleaned.indexOf("\n");
+      if (fenceEnd !== -1) {
+        cleaned = cleaned.slice(fenceEnd + 1);
+      }
+      if (cleaned.endsWith("```")) {
+        cleaned = cleaned.slice(0, -3);
+      }
+      cleaned = cleaned.trim();
+    }
+    
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
     if (start === -1 || end === -1 || end < start) return null;
-    const parsed: unknown = JSON.parse(text.slice(start, end + 1));
+    const parsed: unknown = JSON.parse(cleaned.slice(start, end + 1));
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : null;
@@ -307,49 +321,8 @@ function buildLLMCapsule(
   };
 }
 
-// Compute metrics for the compiled capsule
-function computeMetrics(rawText: string, capsule: any, compileLatencyMs: number, verificationMetrics?: any) {
-  const rawWords = rawText.trim().split(/\s+/).filter(Boolean).length;
-  const tier1Words = capsule.one_sentence_summary?.trim().split(/\s+/).filter(Boolean).length || 0;
-  const totalEntities = 
-    (capsule.extracted_tokens?.file_paths?.length || 0) +
-    (capsule.extracted_tokens?.line_numbers?.length || 0) +
-    (capsule.extracted_tokens?.urls?.length || 0) +
-    (capsule.extracted_tokens?.dates_deadlines?.length || 0) +
-    (capsule.extracted_tokens?.people_mentions?.length || 0) +
-    (capsule.extracted_tokens?.metrics?.length || 0);
-  
-  const cognitiveLoadReductionPct = rawWords > 0 
-    ? Math.max(0, Math.min(100, Math.round(((rawWords - tier1Words) / rawWords) * 100)))
-    : 0;
-
-  // Enhanced metrics for judge evaluation
-  const rawChaosTokenCount = rawText.split(/\s+/).filter(Boolean).length + 
-    (rawText.match(/\n/g) || []).length * 2;
-  
-  const decompressedActionableNodes = 
-    (capsule.micro_steps?.length || 0) +
-    (capsule.dead_ends?.length || 0) +
-    totalEntities;
-  
-  const baseResumptionTime = 30;
-  const compressionRatio = rawText.length > 0 ? Math.min(capsule.one_sentence_summary?.length / rawText.length || 0, 1) : 0;
-  const estimatedResumptionTimeSavedMin = Math.round(baseResumptionTime * (1 - compressionRatio));
-  
-  const hallucinationInterceptionRate = 100;
-
-  return {
-    rawWordCount: rawWords,
-    compressedWordCount: tier1Words,
-    cognitiveLoadReductionPct,
-    extractedEntitiesCount: totalEntities,
-    compileLatencyMs,
-    rawChaosTokenCount,
-    decompressedActionableNodes,
-    estimatedResumptionTimeSavedMin,
-    hallucinationInterceptionRate,
-  };
-}
+// Compute metrics for the compiled capsule - USE SHARED IMPLEMENTATION
+// import { computeAllMetrics } from "@/lib/metrics"; // Already imported at top
 
 export async function POST(req: Request): Promise<NextResponse> {
   const startTime = Date.now();
@@ -489,8 +462,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       validated,
     );
 
-    // Add enhanced metrics to capsule (using type extension)
-    const metrics = computeMetrics(rawText, repairedCapsule, compileLatencyMs, verificationMetrics);
+    // Add enhanced metrics to capsule (using SINGLE SOURCE OF TRUTH)
+    const metrics = computeAllMetrics(rawText, repairedCapsule, receipt, verificationMetrics, compileLatencyMs);
     (repairedCapsule as any).metrics = metrics;
 
     // Add enhanced receipt fields
