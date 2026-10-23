@@ -5,7 +5,7 @@
  * Extracts every hard token from raw input and mathematically verifies 100%
  * survival in the AI output. If the LLM drops or hallucinates a token, the
  * verifier intercepts it, auto-restores the exact token, and emits an auditable
- * FlowDesk Fidelity Receipt.
+ * ForgeState Fidelity Receipt.
  */
 
 import type {
@@ -16,13 +16,13 @@ import type {
 import { ExtractedTokensSchema } from "./flowdesk-contracts";
 import { ensureUuid, generateUuidV4 } from "./uuid";
 import { 
-  extractTokensShared, 
+  extractGroundTruthTokens,
   type ExtractedTokens as SharedExtractedTokens,
   FILE_PATH_RE
 } from "./token-extraction";
 
-// Re-export for compatibility
-export { extractTokensShared as extractTokens };
+// Re-export for compatibility (now uses shared ground-truth extraction)
+export { extractGroundTruthTokens as extractTokens };
 
 // ---------------------------------------------------------------------------
 // Token presence check in compiled output
@@ -131,7 +131,7 @@ export function verifyFidelity(
   capsule: ForgeStateCapsule,
 ): VerifyResult {
   const raw = typeof rawInput === "string" ? rawInput : "";
-  const extracted = extractTokensShared(raw);
+  const extracted = extractGroundTruthTokens(raw);
   const capsuleId = ensureUuid(capsule.capsule_id);
 
   const compiledText = [
@@ -279,7 +279,7 @@ export function verifyFidelity(
   if (repaired) {
     const repairBlock = [
       "",
-      "--- FlowDesk Fidelity Auto-Repair ---",
+      "--- ForgeState Fidelity Auto-Repair ---",
       "The following tokens were missing from the compiled output or hallucinated, and have been reconciled:",
       ...intercepted.map((i) => `- ${i}`),
       "--- End Auto-Repair ---",
