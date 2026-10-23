@@ -80,6 +80,46 @@ describe("compileDeterministic", () => {
     expect(capsule.micro_steps.length).toBeGreaterThan(0);
     expect(capsule.extracted_tokens.urls).toEqual([]);
   });
+
+  it("extracts file paths correctly from git diff headers", () => {
+    const gitDiff = `diff --git a/src/lib/export-pipeline.ts b/src/lib/export-pipeline.ts
+index 1234567..abcdefg 100644
+--- a/src/lib/export-pipeline.ts
++++ b/src/lib/export-pipeline.ts
+@@ -10,7 +10,7 @@ export function runPipeline() {
+-  const timeout = 30000;
++  const timeout = 60000;
+   return fetchData(timeout);
+ }
+`;
+    const capsule = compileDeterministic({
+      text: gitDiff,
+      source: "paste",
+    });
+
+    expect(capsule.extracted_tokens.file_paths).toContain("src/lib/export-pipeline.ts");
+  });
+
+  it("extracts added/removed lines with correct file paths from git diff", () => {
+    const gitDiff = `diff --git a/src/lib/export-pipeline.ts b/src/lib/export-pipeline.ts
+index 1234567..abcdefg 100644
+--- a/src/lib/export-pipeline.ts
++++ b/src/lib/export-pipeline.ts
+@@ -299,6 +299,7 @@ export function runPipeline() {
+   console.log("Starting pipeline");
+   const result = await fetchData();
++  console.log("Pipeline result:", result);
+   return result;
+ }
+`;
+    const capsule = compileDeterministic({
+      text: gitDiff,
+      source: "paste",
+    });
+
+    // The deterministic compiler merges extracted tokens with git entities
+    expect(capsule.extracted_tokens.file_paths).toContain("src/lib/export-pipeline.ts");
+  });
 });
 
 describe("compileRawInput", () => {

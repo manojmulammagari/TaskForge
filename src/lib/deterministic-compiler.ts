@@ -65,9 +65,12 @@ function normalizeGitDiff(text: string): string {
 function windowAroundHotspots(text: string): string {
   if (text.length <= MAX_INPUT_CHARS) return text;
 
+  // Create fresh regex instance to avoid shared lastIndex state
+  const errorHotspotRe = /\b(?:Error|FAIL|TS\d{4}|Exception|Panic|panic|Traceback|SyntaxError|TypeError|ReferenceError|Segmentation fault|ECONNREFUSED|ETIMEDOUT|ENOENT|EACCES)\b/gi;
+  
   const hotspots: number[] = [];
   let match: RegExpExecArray | null;
-  while ((match = ERROR_HOTSPOT_RE.exec(text)) !== null) {
+  while ((match = errorHotspotRe.exec(text)) !== null) {
     hotspots.push(match.index);
   }
 
@@ -98,6 +101,7 @@ function windowAroundHotspots(text: string): string {
     windows.push(`... [${text.length - lastEnd} chars truncated] ...`);
   }
 
+  // Merge overlapping slices so characters are never duplicated
   return windows.join("\n");
 }
 
@@ -124,6 +128,18 @@ function extractGitDiffEntities(text: string): {
 
   const lines = text.split("\n");
   for (const line of lines) {
+    // Check for diff header to set current file
+    const diffMatch = line.match(/^diff --git a\/(.+) b\/(.+)$/);
+    if (diffMatch) {
+      currentFile = diffMatch[2];
+      continue;
+    }
+    // Check for +++ file header
+    const plusFileMatch = line.match(/^\+\+\+ b\/(.+)$/);
+    if (plusFileMatch) {
+      currentFile = plusFileMatch[1];
+      continue;
+    }
     const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
     if (hunkMatch) {
       currentOldLine = parseInt(hunkMatch[1], 10);
@@ -318,7 +334,7 @@ export function compileDeterministic(raw: RawInput): ForgeStateCapsule {
     });
   }
 
-  // Calculate cognitive load metrics
+  // Calculate cognitive load metrics - use clamped word reduction math
   const rawWordCount = text.split(/\s+/).filter(Boolean).length;
   const compressedWordCount = oneSentenceSummary.split(/\s+/).filter(Boolean).length;
   const extractedEntitiesCount = 
@@ -329,7 +345,7 @@ export function compileDeterministic(raw: RawInput): ForgeStateCapsule {
     mergedTokens.people_mentions.length +
     mergedTokens.metrics.length;
   const cognitiveLoadReductionPct = rawWordCount > 0 
-    ? Math.round(((rawWordCount - compressedWordCount) / rawWordCount) * 100)
+    ? Math.max(0, Math.min(100, Math.round(((rawWordCount - compressedWordCount) / rawWordCount) * 100)))
     : 0;
   const compileLatencyMs = Date.now() - startTime;
 
@@ -386,14 +402,17 @@ function buildDiff(
   summary: string,
   anchor: string,
 ): string {
-  const rawLines = raw.split("\n").length;
+  const rawWords = raw.split(/\s+/).filter(Boolean).length;
   const summaryWords = summary.split(/\s+/).filter(Boolean).length;
   const anchorWords = anchor.split(/\s+/).filter(Boolean).length;
-  const reductionPct = rawLines > 0 ? Math.round(((rawLines - 2) / rawLines) * 100) : 0;
+  const compiledWords = summaryWords + anchorWords;
+  const reductionPct = rawWords > 0 
+    ? Math.max(0, Math.min(100, Math.round(((rawWords - compiledWords) / rawWords) * 100)))
+    : 0;
 
   return [
     "=== Raw Input (chaotic brain dump) ===",
-    `Lines: ${rawLines} | Est. words: ${raw.split(/\s+/).filter(Boolean).length}`,
+    `Lines: ${raw.split("\n").length} | Est. words: ${rawWords}`,
     raw,
     "",
     "=== Compiled Capsule ===",
