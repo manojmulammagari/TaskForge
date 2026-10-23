@@ -804,10 +804,13 @@ export default function ForgeStatePage() {
                   </div>
                   <div className="border border-emerald-500/40 bg-emerald-500/10 shadow-sm p-3 rounded-instrument text-center min-w-[140px]">
                     <div className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
-                      {receipt?.hallucinations_intercepted ? "100% Intercepted" : "100% Grounded"}
+                      100% Token Survival
                     </div>
                     <div className="text-[10px] text-swiss-muted">
-                      {receipt?.hallucinations_intercepted ? `${receipt.hallucinations_intercepted} Auto-Repaired` : "Zero Hallucinations"}
+                      {receipt?.hallucinations_intercepted 
+                        ? `${receipt.tokens_survived}/${receipt.tokens_extracted} Verified (${receipt.hallucinations_intercepted} Auto-Repaired)`
+                        : "All Ground-Truth Entities Intact"
+                      }
                     </div>
                   </div>
                   <div className="border border-swiss-border bg-swiss-surface shadow-sm p-3 rounded-instrument text-center min-w-[140px]">
