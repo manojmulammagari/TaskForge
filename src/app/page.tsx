@@ -569,7 +569,7 @@ export default function ForgeStatePage() {
       timeSavedMin: metrics?.estimatedResumptionTimeSavedMin ?? 0,
       interceptionRate: metrics?.hallucinationInterceptionRate ?? 100,
       noiseReduction: computeCognitiveLoadReduction(
-        rawInput,
+        capsule.source_input || rawInput,
         capsule.one_sentence_summary,
         capsule.two_minute_anchor
       ),
@@ -580,8 +580,8 @@ export default function ForgeStatePage() {
   // Fidelity display for JudgeControlBar - USE SHARED FORMATTING
   const fidelityDisplay = useMemo(() => {
     if (!capsule || !receipt) return null;
-    return formatFidelityDisplay(receipt, capsule);
-  }, [capsule, receipt]);
+    return formatFidelityDisplay(receipt, capsule, usedFallback);
+  }, [capsule, receipt, usedFallback]);
 
   const dismissWalkthrough = useCallback(() => {
     setShowWalkthrough(false);

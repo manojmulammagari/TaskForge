@@ -362,7 +362,7 @@ export function DecompressionCanvas({
             <div className="mt-3 text-telemetry-xs text-swiss-muted telemetry flex items-center gap-2">
               <span className="font-bold text-swiss-text">Anchor Word Compression:</span>
               <span className="font-mono text-amber-600 dark:text-amber-400">
-                {computeAnchorWordCompression(rawInput, capsule.one_sentence_summary, capsule.two_minute_anchor)}%
+                {computeAnchorWordCompression(capsule.source_input || rawInput, capsule.one_sentence_summary, capsule.two_minute_anchor)}%
               </span>
               <span className="text-swiss-muted">(raw words → anchor+summary words)</span>
             </div>
