@@ -150,11 +150,28 @@ export function computeAllMetrics(
  * Format fidelity display for UI components.
  * Returns object with labeled scores to prevent contradictions.
  */
-export function formatFidelityDisplay(receipt: FidelityReceipt | null, capsule: ForgeStateCapsule | null) {
+export function formatFidelityDisplay(
+  receipt: FidelityReceipt | null,
+  capsule: ForgeStateCapsule | null,
+  usedFallback?: string
+) {
   if (!receipt || !capsule) {
     return {
       header: "Fidelity: —",
       detail: "Pre-Repair: — | Final: —",
+      showRepairBadge: false,
+    };
+  }
+
+  const isFallback =
+    usedFallback === "deterministic" ||
+    usedFallback === "deterministic-local" ||
+    usedFallback === "fallback";
+
+  if (isFallback) {
+    return {
+      header: "Fidelity: N/A (Heuristic)",
+      detail: "Deterministic parser active — heuristic extraction without LLM verification",
       showRepairBadge: false,
     };
   }
