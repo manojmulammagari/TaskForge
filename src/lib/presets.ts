@@ -67,7 +67,7 @@ export const PRESETS: Array<{
   },
   {
     id: "4",
-    title: "HALLUCINATION TRAP — Verifier Stress Test",
+    title: "Hallucination Trap (Stress Test)",
     subtitle: "LLM drops a deadline & file path; verifier auto-repairs",
     input: {
       text: "Critical: the export pipeline in src/lib/export-pipeline.ts line 302 times out after 30 seconds when files exceed 50MB. The S3 upload to https://s3.amazonaws.com/bucket/export fails silently. I already tried bumping the timeout and compressing first — dead end. Must be fixed by Monday, November 3rd or the client cuts the contract. Assign to @devops-lead.",
