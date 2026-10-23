@@ -15,20 +15,6 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License: MIT" /></a>
 </p>
 
----
-
-## 🚀 Quickstart (3 Commands)
-
-```bash
-git clone https://github.com/manojmulammagari/TaskForge.git
-cd TaskForge
-npm install && npm run dev
-```
-
-Open **http://localhost:3000** — the app loads instantly with **zero API keys required** (offline deterministic fallback + Composio sandbox simulation).
-
----
-
 ## 🚀 Quickstart (3 Commands)
 
 ```bash
