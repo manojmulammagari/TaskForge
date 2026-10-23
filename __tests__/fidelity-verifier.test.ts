@@ -164,4 +164,43 @@ describe("verifyFidelity", () => {
     // Should extract line reference with "line:" format
     expect(tokens.line_numbers).toContain(302);
   });
+
+  it("The Hallucination Trap: intercepts hallucinated functions (validateTokenSync) not in raw input", () => {
+    const raw =
+      "Fix src/lib/export-pipeline.ts line 302. Must ship by Monday, November 3rd.";
+    // Capsule contains a hallucinated function that doesn't exist in raw
+    const capsule: ForgeStateCapsule = {
+      ...baseCapsule,
+      one_sentence_summary: "Export pipeline times out, call validateTokenSync() to fix.",
+      two_minute_anchor: "Open src/lib/export-pipeline.ts at line 302.",
+      mental_state: "Blocked",
+      extracted_tokens: {
+        file_paths: ["src/lib/export-pipeline.ts"],
+        line_numbers: [302],
+        urls: [],
+        dates_deadlines: ["Monday, November 3rd"],
+        people_mentions: [],
+        metrics: [],
+      },
+    };
+    const { capsule: repaired, receipt } = verifyFidelity(raw, capsule);
+    
+    // The hallucinated function should be intercepted
+    expect(receipt.hallucinations_intercepted).toBeGreaterThan(0);
+    expect(repaired.auto_repaired).toBe(true);
+    expect(repaired.fidelity_score).toBe(100);
+    
+    // The interception should be recorded in intercepted_hallucinations
+    expect(repaired.intercepted_hallucinations).toBeDefined();
+    expect(repaired.intercepted_hallucinations!.length).toBeGreaterThan(0);
+    
+    // The hallucinated function should be in the intercepted list
+    const hasHallucinatedFunction = repaired.intercepted_hallucinations!.some(
+      (h) => h.includes("validateTokenSync")
+    );
+    expect(hasHallucinatedFunction).toBe(true);
+    
+    // receipt.repaired should be true
+    expect(receipt.repaired).toBe(true);
+  });
 });

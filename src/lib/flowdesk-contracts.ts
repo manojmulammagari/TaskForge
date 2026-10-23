@@ -229,6 +229,8 @@ export const FidelityReceiptSchema = z.object({
   repaired: z.boolean().default(false),
   verification_passed: z.boolean(),
   evidence_hash: z.string().min(1),
+  /** Indicates the deterministic fallback compiler was used (no LLM verification). */
+  deterministic_fallback_used: z.boolean().default(false),
 });
 
 export type FidelityReceipt = z.infer<typeof FidelityReceiptSchema>;

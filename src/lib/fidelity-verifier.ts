@@ -39,6 +39,56 @@ function normalizeExtractedUrl(raw: string): string {
   return normalizeUrl(withoutTrailingPunctuation);
 }
 
+/**
+ * Normalize extracted date strings to ISO-8601 (YYYY-MM-DD) format.
+ * Defaults to current year (2026) when year is omitted.
+ */
+function normalizeDateToISO(raw: string): string {
+  const trimmed = raw.trim();
+  
+  // Already ISO format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  
+  // MM/DD/YYYY or MM/DD/YY
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (slashMatch) {
+    const month = slashMatch[1].padStart(2, "0");
+    const day = slashMatch[2].padStart(2, "0");
+    let year = slashMatch[3];
+    if (year.length === 2) year = "20" + year;
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Month name formats: "October 24th", "October 24th, 2026", "Nov 3rd", etc.
+  const monthNames: Record<string, string> = {
+    jan: "01", january: "01",
+    feb: "02", february: "02",
+    mar: "03", march: "03",
+    apr: "04", april: "04",
+    may: "05",
+    jun: "06", june: "06",
+    jul: "07", july: "07",
+    aug: "08", august: "08",
+    sep: "09", sept: "09", september: "09",
+    oct: "10", october: "10",
+    nov: "11", november: "11",
+    dec: "12", december: "12",
+  };
+  
+  const monthMatch = trimmed.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?(?:,\s*(\d{4}))?$/i);
+  if (monthMatch) {
+    const month = monthNames[monthMatch[1].toLowerCase()];
+    const day = monthMatch[2].padStart(2, "0");
+    const year = monthMatch[3] || "2026"; // Default to current year
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Fallback: return original if we can't parse
+  return trimmed;
+}
+
 export function extractTokens(text: string): ExtractedTokens {
   const source = typeof text === "string" ? text : "";
   const urls = Array.from(source.matchAll(URL_RE)).map((m) =>
@@ -48,7 +98,8 @@ export function extractTokens(text: string): ExtractedTokens {
   const lineNumbers = Array.from(source.matchAll(LINE_REF_RE)).map(
     (m) => Number(m[1]),
   );
-  const datesDeadlines = Array.from(source.matchAll(DATE_RE)).map((m) => m[0]);
+  const datesDeadlines = Array.from(source.matchAll(DATE_RE))
+    .map((m) => normalizeDateToISO(m[0]));
   const peopleMentions = Array.from(source.matchAll(PERSON_RE))
     .flatMap((m) => m.slice(1).filter(Boolean))
     .map((mention) => mention.replace(/[.,;:!?]+$/g, ""))
@@ -120,6 +171,35 @@ function tokenPresent(token: string, output: string): boolean {
     if (core && paddedOutput.includes(` ${core} `)) return true;
   }
 
+  // ISO date tokens (YYYY-MM-DD): also match month-name formats like "October 24th"
+  const isoDateMatch = token.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateMatch) {
+    const year = isoDateMatch[1];
+    const month = parseInt(isoDateMatch[2], 10);
+    const day = parseInt(isoDateMatch[3], 10);
+    const monthNames = [
+      "january", "february", "march", "april", "may", "june",
+      "july", "august", "september", "october", "november", "december"
+    ];
+    const monthName = monthNames[month - 1];
+    if (monthName) {
+      // Check for "October 24", "October 24th", "Oct 24", etc.
+      const dayStr = day.toString();
+      const dayWithSuffix = dayStr + (day === 1 ? "st" : day === 2 ? "nd" : day === 3 ? "rd" : "th");
+      const patterns = [
+        `${monthName} ${dayStr}`,
+        `${monthName} ${dayWithSuffix}`,
+        `${monthName.slice(0, 3)} ${dayStr}`,
+        `${monthName.slice(0, 3)} ${dayWithSuffix}`,
+        `${monthName} ${dayStr}, ${year}`,
+        `${monthName} ${dayWithSuffix}, ${year}`,
+      ];
+      for (const pattern of patterns) {
+        if (paddedOutput.includes(` ${normalizeForMatch(pattern)} `)) return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -154,7 +234,6 @@ export function verifyFidelity(
     capsule.one_sentence_summary,
     capsule.two_minute_anchor,
     capsule.mental_state,
-    capsule.raw_vs_compiled_diff ?? "",
     ...capsule.micro_steps.map((s) => s.text),
     ...capsule.dead_ends.map((d) => d.attempt + " " + d.error),
   ].join(" ");
@@ -197,6 +276,35 @@ export function verifyFidelity(
   const totalTokens = allTokens.length + lineTokens.length;
   const tokensSurvived = Math.max(0, totalTokens - tokensLost);
   let hallucinationsIntercepted = intercepted.length;
+
+  // Bidirectional Hallucination Guard: Check for entities in compiled output
+  // that don't exist in raw input (LLM hallucinations)
+  const compiledFilePaths = Array.from(compiledText.matchAll(FILE_PATH_RE)).map((m) => m[0]);
+  const compiledFunctionNames = Array.from(compiledText.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\(\)/g)).map((m) => m[1]);
+  
+  for (const fp of compiledFilePaths) {
+    // Check if this file path exists in raw input (normalized comparison)
+    const fpNormalized = fp.toLowerCase();
+    const existsInRaw = extracted.file_paths.some(efp => efp.toLowerCase() === fpNormalized) ||
+      raw.toLowerCase().includes(fpNormalized);
+    if (!existsInRaw) {
+      // Hallucinated file path - intercept and strip from extracted_tokens
+      intercepted.push(`[hallucination:dropped] ${fp}`);
+      hallucinationsIntercepted += 1;
+    }
+  }
+
+  for (const fn of compiledFunctionNames) {
+    // Check if this function name exists in raw input
+    const fnNormalized = fn.toLowerCase();
+    const existsInRaw = raw.toLowerCase().includes(fnNormalized);
+    if (!existsInRaw && fn.length > 3) { // Avoid false positives on common short names
+      intercepted.push(`[hallucination:dropped] ${fn}()`);
+      hallucinationsIntercepted += 1;
+    }
+  }
+
+  // Now compute repaired state AFTER bidirectional checks
   const repaired = intercepted.length > 0;
   const autoRepairs = intercepted.length;
 
@@ -227,57 +335,48 @@ export function verifyFidelity(
   const compressionRatio = raw.length > 0 ? Math.min(capsule.one_sentence_summary.length / raw.length, 1) : 0;
   const estimatedResumptionTimeSavedMin = Math.round(baseResumptionTime * (1 - compressionRatio));
   
-  // Hallucination interception rate
+  // Hallucination interception rate (use updated count after bidirectional checks)
   const hallucinationInterceptionRate = totalTokens > 0 
     ? Math.round((hallucinationsIntercepted / totalTokens) * 100)
     : 100;
+
+  // Clone extracted_tokens immutably for the repaired capsule
+  const repairedExtractedTokens = {
+    file_paths: [...extracted.file_paths],
+    line_numbers: [...extracted.line_numbers],
+    urls: [...extracted.urls],
+    dates_deadlines: [...extracted.dates_deadlines],
+    people_mentions: [...extracted.people_mentions],
+    metrics: [...extracted.metrics],
+  };
+
+  // Remove hallucinated file paths from repaired extracted_tokens
+  for (const fp of compiledFilePaths) {
+    const fpNormalized = fp.toLowerCase();
+    const existsInRaw = extracted.file_paths.some(efp => efp.toLowerCase() === fpNormalized) ||
+      raw.toLowerCase().includes(fpNormalized);
+    if (!existsInRaw) {
+      repairedExtractedTokens.file_paths = repairedExtractedTokens.file_paths.filter(
+        efp => efp.toLowerCase() !== fpNormalized
+      );
+    }
+  }
 
   const repairedCapsule: ForgeStateCapsule = {
     ...capsule,
     capsule_id: capsuleId,
     // Always expose the complete deterministic extraction to downstream UI,
     // regardless of which compiler tier produced the capsule.
-    extracted_tokens: extracted,
+    extracted_tokens: repairedExtractedTokens,
     fidelity_score: finalFidelityScore,
   };
-
-  // Bidirectional Hallucination Guard: Check for entities in compiled output
-  // that don't exist in raw input (LLM hallucinations)
-  const compiledFilePaths = Array.from(compiledText.matchAll(FILE_PATH_RE)).map((m) => m[0]);
-  const compiledFunctionNames = Array.from(compiledText.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\(\)/g)).map((m) => m[1]);
-  
-  for (const fp of compiledFilePaths) {
-    // Check if this file path exists in raw input (normalized comparison)
-    const fpNormalized = fp.toLowerCase();
-    const existsInRaw = extracted.file_paths.some(efp => efp.toLowerCase() === fpNormalized) ||
-      raw.toLowerCase().includes(fpNormalized);
-    if (!existsInRaw) {
-      // Hallucinated file path - intercept and strip from extracted_tokens
-      intercepted.push(`[hallucination:dropped] ${fp}`);
-      hallucinationsIntercepted += 1;
-      // Remove from repaired capsule's extracted_tokens
-      repairedCapsule.extracted_tokens.file_paths = repairedCapsule.extracted_tokens.file_paths.filter(
-        efp => efp.toLowerCase() !== fpNormalized
-      );
-    }
-  }
-
-  for (const fn of compiledFunctionNames) {
-    // Check if this function name exists in raw input
-    const fnNormalized = fn.toLowerCase();
-    const existsInRaw = raw.toLowerCase().includes(fnNormalized);
-    if (!existsInRaw && fn.length > 3) { // Avoid false positives on common short names
-      intercepted.push(`[hallucination:dropped] ${fn}()`);
-      hallucinationsIntercepted += 1;
-    }
-  }
 
   // Auto-repair: append dropped tokens to the diff section so nothing is lost
   if (repaired) {
     const repairBlock = [
       "",
       "--- FlowDesk Fidelity Auto-Repair ---",
-      "The following tokens were missing from the compiled output and have been restored:",
+      "The following tokens were missing from the compiled output or hallucinated, and have been reconciled:",
       ...intercepted.map((i) => `- ${i}`),
       "--- End Auto-Repair ---",
       "",
@@ -306,6 +405,7 @@ export function verifyFidelity(
     repaired,
     verification_passed: finalFidelityScore === 100,
     evidence_hash: sha256Sync(raw + JSON.stringify(extracted) + capsuleId),
+    deterministic_fallback_used: false,
   };
 
   return { 
